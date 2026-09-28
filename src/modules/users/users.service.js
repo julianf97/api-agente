@@ -1,36 +1,32 @@
-import bcrypt from 'bcrypt';
-import { USER_ERROR_MESSAGES, USER_ROLES } from '../../constants/constants.js';
-import { AuthorizationError } from '../../errors/authorization-error.js';
+import { USER_ROLES } from '../../constants/constants.js';
 import {
   createUser as createUserRepository,
   findUsers,
-  findUserById,
   updateUser as updateUserRepository,
   deleteUser as deleteUserRepository,
 } from './users.repository.js';
+import { findExistingUserById } from './find-existing-user.js';
 import {
-  canCreateUser,
-  canEditUser,
-  canDeleteUser,
-  canChangeUserRole,
-} from './users.permissions.js';
-
-const SALT_ROUNDS = 12;
+  assertCanCreateUser,
+  assertCanUpdateUser,
+  assertCanChangeUserRole,
+  assertCanDeleteUser,
+} from './users.guards.js';
+import {
+  hashUserPassword,
+  toUserUpdateData,
+} from './users.mapper.js';
 
 export async function createUser(
   { username, email, password, role = USER_ROLES.REGULAR },
   actor,
 ) {
-  if (!canCreateUser(actor?.role, role)) {
-    throw new AuthorizationError(
-      USER_ERROR_MESSAGES.CANNOT_CREATE_WITH_ROLE,
-    );
-  }
+  assertCanCreateUser(actor, role);
 
   return createUserRepository({
     username,
     email: email.toLowerCase(),
-    passwordHash: await bcrypt.hash(password, SALT_ROUNDS),
+    passwordHash: await hashUserPassword(password),
     role,
   });
 }
@@ -49,69 +45,30 @@ export async function listUsers({ page = 1, limit = 20 }) {
 }
 
 export async function getUserById(id) {
-  return findUserById(id);
+  return findExistingUserById(id);
 }
 
 export async function updateUser(id, data, actor) {
-  const user = await findUserById(id);
+  const user = await findExistingUserById(id);
 
-  if (!user) {
-    return null;
-  }
+  assertCanUpdateUser(actor, user, data);
 
-  if (!canEditUser(actor, user)) {
-    throw new AuthorizationError(USER_ERROR_MESSAGES.CANNOT_EDIT);
-  }
-
-  if (Object.hasOwn(data, 'role')) {
-    throw new AuthorizationError(
-      USER_ERROR_MESSAGES.CANNOT_CHANGE_ROLE_HERE,
-    );
-  }
-
-  const changes = {};
-
-  if (data.username !== undefined) {
-    changes.username = data.username;
-  }
-
-  if (data.email !== undefined) {
-    changes.email = data.email.toLowerCase();
-  }
-
-  if (data.password !== undefined) {
-    changes.passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS);
-  }
-
+  const changes = await toUserUpdateData(data);
   return updateUserRepository(user, changes);
 }
 
 export async function changeUserRole(id, newRole, actor) {
-  const user = await findUserById(id);
+  const user = await findExistingUserById(id);
 
-  if (!user) {
-    return null;
-  }
-
-  if (!canChangeUserRole(actor?.role, user.role, newRole)) {
-    throw new AuthorizationError(
-      USER_ERROR_MESSAGES.CANNOT_CHANGE_ROLE,
-    );
-  }
+  assertCanChangeUserRole(actor, user, newRole);
 
   return updateUserRepository(user, { role: newRole });
 }
 
 export async function deleteUser(id, actor) {
-  const user = await findUserById(id);
+  const user = await findExistingUserById(id);
 
-  if (!user) {
-    return false;
-  }
-
-  if (!canDeleteUser(actor?.role, user.role)) {
-    throw new AuthorizationError(USER_ERROR_MESSAGES.CANNOT_DELETE);
-  }
+  assertCanDeleteUser(actor, user);
 
   await deleteUserRepository(user);
   return true;

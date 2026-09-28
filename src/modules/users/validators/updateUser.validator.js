@@ -41,11 +41,17 @@ export const updateUserValidation = [
     .withMessage(MESSAGES.PASSWORD_TOO_LONG)
     .hide(),
 
+  body('enabled')
+    .optional()
+    .isBoolean({ strict: true })
+    .withMessage(MESSAGES.ENABLED_MUST_BE_BOOLEAN),
+
   oneOf(
     [
       body('username').exists(),
       body('email').exists(),
       body('password').exists(),
+      body('enabled').exists(),
     ],
     { message: MESSAGES.UPDATE_REQUIRES_FIELD },
   ),

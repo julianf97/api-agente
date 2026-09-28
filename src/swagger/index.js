@@ -219,7 +219,7 @@ const openApiDocument = {
         tags: ['Users'],
         summary: 'Editar los datos de un usuario',
         description:
-          'Admin solo puede editar usuarios regular. Superadmin puede editar usuarios regular y admin, además de sus propios datos. Esta operación no cambia el rol ni el estado enabled.',
+          'Admin solo puede editar usuarios regular. Superadmin puede editar usuarios regular y admin, además de sus propios datos. Esta operación no cambia el rol. Permite modificar el estado enabled, excepto deshabilitar la cuenta superadmin.',
         security: [{ bearerAuth: [] }],
         parameters: [userIdParameter],
         requestBody: {
@@ -253,7 +253,7 @@ const openApiDocument = {
           },
           403: {
             description:
-              'El solicitante no puede editar al usuario indicado.',
+              'El solicitante no puede editar al usuario indicado o se intentó deshabilitar la cuenta superadmin.',
           },
           404: {
             description: 'Usuario no encontrado.',
@@ -462,6 +462,12 @@ const openApiDocument = {
             format: 'password',
             writeOnly: true,
             example: 'nuevaContraseña123',
+          },
+          enabled: {
+            type: 'boolean',
+            description:
+              'Indica si el usuario puede iniciar sesión.',
+            example: true,
           },
         },
       },

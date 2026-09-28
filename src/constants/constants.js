@@ -42,6 +42,8 @@ export const USER_ERROR_MESSAGES = Object.freeze({
     'No tenés permisos para cambiar el rol de este usuario.',
   CANNOT_DELETE:
     'No tenés permisos para eliminar este usuario.',
+  CANNOT_DISABLE_SUPERADMIN:
+    'No se puede deshabilitar la cuenta superadmin.',
   USERNAME_ALREADY_EXISTS:
     'El nombre de usuario ya está registrado.',
   EMAIL_ALREADY_EXISTS:
@@ -75,6 +77,9 @@ export const USER_VALIDATION_MESSAGES = Object.freeze({
   ROLE_REQUIRED: 'El rol es obligatorio.',
   ROLE_MUST_BE_STRING: 'El rol debe ser texto.',
   ROLE_INVALID: 'El rol debe ser admin o regular.',
+
+  ENABLED_MUST_BE_BOOLEAN:
+    'Enabled debe ser true o false.',
 
   ID_MUST_BE_POSITIVE_INTEGER: 'El ID debe ser un entero positivo.',
   ID_INVALID: 'El ID no es válido.',

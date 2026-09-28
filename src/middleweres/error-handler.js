@@ -2,6 +2,7 @@ import { REQUEST_ERROR_MESSAGES } from '../constants/constants.js';
 import { handleAuthorizationError } from '../errors/authorization-error.js';
 import { handleMalformedJsonError } from '../errors/malformed-json-error.js';
 import { handleUniqueConstraintError } from '../errors/unique-constraint-error.js';
+import { handleUserNotFoundError } from '../errors/user-not-found-error.js';
 
 export function errorHandler(error, _req, res, _next) {
   if (handleAuthorizationError(error, res)) {
@@ -13,6 +14,10 @@ export function errorHandler(error, _req, res, _next) {
   }
 
   if (handleUniqueConstraintError(error, res)) {
+    return;
+  }
+
+  if (handleUserNotFoundError(error, res)) {
     return;
   }
 
