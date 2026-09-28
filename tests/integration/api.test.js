@@ -63,7 +63,7 @@ function assertOpenApiResponse(route, status, headers, data) {
   const [method, path] = route.split(' ');
   const operation = openApiDocument.paths[path]?.[method.toLowerCase()];
   const documented = operation?.responses[String(status)];
-  expect(documented).toBeTruthy(`${route}: HTTP ${status} is not documented in OpenAPI`);
+  if (!documented) throw new Error(`${route}: HTTP ${status} is not documented in OpenAPI`);
 
   const media = documented.content?.['application/json'];
   if (!media) {
@@ -71,18 +71,22 @@ function assertOpenApiResponse(route, status, headers, data) {
     return;
   }
   expect(headers.get('content-type') ?? '').toMatch(/^application\/json(?:;|$)/i);
-  expect(data !== null && typeof data === 'object' && !Array.isArray(data)).toBeTruthy(`${route} HTTP ${status}: expected JSON object`);
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error(`${route} HTTP ${status}: expected JSON object`);
+  }
 
   const key = `${route} ${status}`;
   if (!responseValidators.has(key)) {
-    expect(media.schema).toBeTruthy(`${key}: missing response schema`);
+    if (!media.schema) throw new Error(`${key}: missing response schema`);
     responseValidators.set(key, ajv.compile({
       $ref: media.schema.$ref,
       components: openApiDocument.components,
     }));
   }
   const validate = responseValidators.get(key);
-  expect(validate(data)).toBeTruthy(`${key}: ${ajv.errorsText(validate.errors)}; body: ${JSON.stringify(data)}`);
+  if (!validate(data)) {
+    throw new Error(`${key}: ${ajv.errorsText(validate.errors)}; body: ${JSON.stringify(data)}`);
+  }
 }
 
 const password = 'StrongPass123!';
@@ -166,7 +170,9 @@ describe('API HTTP con PostgreSQL', () => {
       JOIN pg_namespace n ON n.oid = t.relnamespace
       WHERE n.nspname = :schema AND t.relname = 'invoices' AND c.contype = 'f'
     `, { replacements: { schema: testSchema } });
-    expect(foreignKeys.some(({ confdeltype }) => confdeltype === 'r' || confdeltype === 'a')).toBeTruthy('invoices.userId must block deleting a user with invoices; existing test-schema constraints may need ON DELETE RESTRICT');
+    if (!foreignKeys.some(({ confdeltype }) => confdeltype === 'r' || confdeltype === 'a')) {
+      throw new Error('invoices.userId must block deleting a user with invoices; existing test-schema constraints may need ON DELETE RESTRICT');
+    }
     ({ openApiDocument } = await import('../../src/swagger/index.js'));
     const { default: app } = await import('../../src/app.js');
     appServer = app.listen(0);
@@ -374,7 +380,9 @@ describe('API HTTP con PostgreSQL', () => {
       for (const [body, field] of cases) {
         const response = await request('/auth/login', { method: 'POST', body });
         expect(response.status).toBe(400);
-        expect(response.data.errors.some((error) => error.field === field)).toBeTruthy(JSON.stringify(response.data));
+        if (!response.data.errors.some((error) => error.field === field)) {
+          throw new Error(`Missing validation error for ${field}: ${JSON.stringify(response.data)}`);
+        }
         expect(JSON.stringify(response.data)).not.toMatch(/StrongPass123!/);
       }
     });
@@ -481,7 +489,9 @@ describe('API HTTP con PostgreSQL', () => {
       for (const [body, field] of invalid) {
         const result = await request('/users', { method: 'POST', token, body });
         expect(result.status).toBe(400);
-        expect(result.data.errors.some((error) => error.field === field)).toBeTruthy(JSON.stringify(result.data));
+        if (!result.data.errors.some((error) => error.field === field)) {
+          throw new Error(`Missing validation error for ${field}: ${JSON.stringify(result.data)}`);
+        }
       }
       expect(await User.count()).toBe(1);
     });
@@ -732,7 +742,9 @@ describe('API HTTP con PostgreSQL', () => {
           const route = `${method.toUpperCase()} ${path}`;
           const observed = observedResponses.get(route) ?? new Set();
           for (const status of Object.keys(operation.responses)) {
-            expect(observed.has(Number(status))).toBeTruthy(`${route}: missing scenario for documented HTTP ${status}`);
+            if (!observed.has(Number(status))) {
+              throw new Error(`${route}: missing scenario for documented HTTP ${status}`);
+            }
           }
         }
       }
