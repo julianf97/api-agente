@@ -1,3 +1,4 @@
+import { USER_ID_MAX, USERNAME_MAX_LENGTH, EMAIL_MAX_LENGTH, PASSWORD_MAX_UTF8_BYTES } from '../../../constants/validation-limits.js';
 import { body, checkExact, oneOf, param } from 'express-validator';
 import {
   USER_VALIDATION_MESSAGES as MESSAGES,
@@ -8,7 +9,7 @@ export const updateUserValidation = [
     .matches(/^[1-9]\d*$/)
     .withMessage(MESSAGES.ID_MUST_BE_POSITIVE_INTEGER)
     .bail()
-    .custom((value) => Number(value) <= 2_147_483_647)
+    .custom((value) => Number(value) <= USER_ID_MAX)
     .withMessage(MESSAGES.ID_INVALID)
     .toInt(),
 
@@ -18,7 +19,7 @@ export const updateUserValidation = [
     .bail()
     .trim()
     .notEmpty().withMessage(MESSAGES.USERNAME_NOT_EMPTY)
-    .isLength({ max: 255 }).withMessage(MESSAGES.USERNAME_TOO_LONG),
+    .isLength({ max: USERNAME_MAX_LENGTH }).withMessage(MESSAGES.USERNAME_TOO_LONG),
 
   body('email')
     .optional()
@@ -28,7 +29,7 @@ export const updateUserValidation = [
     .notEmpty().withMessage(MESSAGES.EMAIL_NOT_EMPTY)
     .bail()
     .isEmail().withMessage(MESSAGES.EMAIL_INVALID)
-    .isLength({ max: 255 }).withMessage(MESSAGES.EMAIL_TOO_LONG),
+    .isLength({ max: EMAIL_MAX_LENGTH }).withMessage(MESSAGES.EMAIL_TOO_LONG),
 
   body('password')
     .optional()
@@ -37,7 +38,7 @@ export const updateUserValidation = [
     .custom((value) => value.trim().length > 0)
     .withMessage(MESSAGES.PASSWORD_NOT_EMPTY)
     .bail()
-    .custom((value) => Buffer.byteLength(value, 'utf8') <= 72)
+    .custom((value) => Buffer.byteLength(value, 'utf8') <= PASSWORD_MAX_UTF8_BYTES)
     .withMessage(MESSAGES.PASSWORD_TOO_LONG)
     .hide(),
 
