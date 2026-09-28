@@ -24,7 +24,7 @@ const userIdParameter = {
   },
 };
 
-const openApiDocument = {
+export const openApiDocument = {
   openapi: '3.0.3',
 
   info: {
