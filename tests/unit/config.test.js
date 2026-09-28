@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from '@jest/globals';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 
@@ -11,8 +10,8 @@ test('startup rejects a missing JWT secret', () => {
     env: { ...process.env, JWT_SECRET: '' },
     encoding: 'utf8',
   });
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Falta configurar JWT_SECRET/);
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toMatch(/Falta configurar JWT_SECRET/);
 });
 
 test('database initializer authenticates and syncs only for the selected test schema', async () => {
@@ -33,14 +32,14 @@ test('database initializer authenticates and syncs only for the selected test sc
   sequelize.sync = async () => { synced += 1; };
   try {
     await initializeDatabase();
-    assert.equal(authenticated, 1);
-    assert.equal(synced, 0);
+    expect(authenticated).toBe(1);
+    expect(synced).toBe(0);
     process.env.DB_USE_TEST_SCHEMA = 'true';
     await initializeDatabase();
-    assert.equal(authenticated, 2);
-    assert.equal(synced, 1);
+    expect(authenticated).toBe(2);
+    expect(synced).toBe(1);
     const { default: User } = await import('../../src/models/user.js');
-    assert.equal(User.getTableName().schema, 'unit-test');
+    expect(User.getTableName().schema).toBe('unit-test');
   } finally {
     sequelize.authenticate = authenticate;
     sequelize.sync = sync;
