@@ -1,5 +1,9 @@
 import swaggerUi from 'swagger-ui-express';
 import { USER_ROLES } from '../constants/constants.js';
+import {
+  USERNAME_MAX_LENGTH, EMAIL_MAX_LENGTH, PASSWORD_MAX_UTF8_BYTES,
+  USER_ID_MAX, USERS_PAGE_LIMIT_MAX,
+} from '../constants/validation-limits.js';
 
 const userRoles = [
   USER_ROLES.REGULAR,
@@ -16,12 +20,12 @@ const userIdParameter = {
   name: 'id',
   in: 'path',
   required: true,
-  description: 'ID del usuario.',
   schema: {
     type: 'integer',
     minimum: 1,
-    maximum: 2147483647,
+    maximum: USER_ID_MAX,
   },
+  description: 'ID entero positivo sin ceros iniciales, hasta 2147483647.',
 };
 
 const validationErrorResponse = {
@@ -120,7 +124,7 @@ export const openApiDocument = {
             schema: {
               type: 'integer',
               minimum: 1,
-              maximum: 100,
+              maximum: USERS_PAGE_LIMIT_MAX,
               default: 20,
             },
           },
@@ -452,12 +456,16 @@ export const openApiDocument = {
         properties: {
           email: {
             type: 'string',
-            format: 'email',
+            pattern: '\\S',
+            description: 'Se eliminan espacios exteriores y luego se valida con express-validator isEmail; no puede quedar vacío.',
+            'x-trim-before-validation': true,
+            'x-email-validator': 'express-validator isEmail',
             example: 'admin-user@gmail.com',
           },
           password: {
             type: 'string',
             format: 'password',
+            minLength: 1,
             writeOnly: true,
           },
         },
@@ -493,20 +501,29 @@ export const openApiDocument = {
           username: {
             type: 'string',
             minLength: 1,
-            maxLength: 255,
+            pattern: '\\S',
+            description: 'Se eliminan espacios exteriores antes de validar: 1 a 255 caracteres y al menos uno no blanco.',
+            'x-trim-before-validation': true,
+            'x-maxLengthAfterTrim': USERNAME_MAX_LENGTH,
             example: 'newuser',
           },
           email: {
             type: 'string',
-            format: 'email',
-            maxLength: 255,
+            pattern: '\\S',
+            description: 'Se eliminan espacios exteriores, se valida con express-validator isEmail y se limita a 255 caracteres después del recorte.',
+            'x-trim-before-validation': true,
+            'x-email-validator': 'express-validator isEmail',
+            'x-maxLengthAfterTrim': EMAIL_MAX_LENGTH,
             example: 'newuser@example.com',
           },
           password: {
             type: 'string',
             minLength: 1,
+            pattern: '\\S',
             format: 'password',
             writeOnly: true,
+            description: 'Debe contener un carácter no blanco y ocupar como máximo 72 bytes en UTF-8 (límite de bcrypt).',
+            'x-maxUtf8Bytes': PASSWORD_MAX_UTF8_BYTES,
             example: 'contraseña123',
           },
           role: {
@@ -526,20 +543,29 @@ export const openApiDocument = {
           username: {
             type: 'string',
             minLength: 1,
-            maxLength: 255,
+            pattern: '\\S',
+            description: 'Se eliminan espacios exteriores antes de validar: 1 a 255 caracteres y al menos uno no blanco.',
+            'x-trim-before-validation': true,
+            'x-maxLengthAfterTrim': USERNAME_MAX_LENGTH,
             example: 'usuario_actualizado',
           },
           email: {
             type: 'string',
-            format: 'email',
-            maxLength: 255,
+            pattern: '\\S',
+            description: 'Se eliminan espacios exteriores, se valida con express-validator isEmail y se limita a 255 caracteres después del recorte.',
+            'x-trim-before-validation': true,
+            'x-email-validator': 'express-validator isEmail',
+            'x-maxLengthAfterTrim': EMAIL_MAX_LENGTH,
             example: 'usuario.actualizado@example.com',
           },
           password: {
             type: 'string',
             minLength: 1,
+            pattern: '\\S',
             format: 'password',
             writeOnly: true,
+            description: 'Debe contener un carácter no blanco y ocupar como máximo 72 bytes en UTF-8 (límite de bcrypt).',
+            'x-maxUtf8Bytes': PASSWORD_MAX_UTF8_BYTES,
             example: 'nuevaContraseña123',
           },
           enabled: {
