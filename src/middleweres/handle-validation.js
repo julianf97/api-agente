@@ -1,4 +1,3 @@
-// src/modules/users/validators/index.js
 import { matchedData, validationResult } from 'express-validator';
 
 export function handleValidation(req, res, next) {
@@ -23,5 +22,5 @@ export function handleValidation(req, res, next) {
   }
 
   req.validatedBody = matchedData(req, { locations: ['body'] });
-  next();
+  return next();
 }

@@ -31,6 +31,11 @@ const User = sequelize.define(
         isIn: [['admin', 'regular']],
       },
     },
+    enabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
   },
   {
     schema: process.env.DB_SCHEMA,
