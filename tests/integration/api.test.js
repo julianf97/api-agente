@@ -692,3 +692,22 @@ test('every documented HTTP response has an exercised integration scenario', () 
     }
   }
 });
+
+test('authentication database failure reaches the central 500 handler without leaking details', async () => {
+  const { user, token } = await actor('auth_failure');
+  const originalFind = User.findByPk;
+  const originalError = console.error;
+  console.error = () => {};
+  User.findByPk = async (id, ...args) => {
+    if (String(id) === String(user.id)) throw new Error('private connection information');
+    return originalFind.call(User, id, ...args);
+  };
+  try {
+    const response = await request('/users', { token });
+    assert.equal(response.status, 500);
+    assert.deepEqual(response.data, { error: 'Error interno del servidor.' });
+  } finally {
+    User.findByPk = originalFind;
+    console.error = originalError;
+  }
+});
