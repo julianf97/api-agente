@@ -9,9 +9,9 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "node --test --test-concurrency=1 tests/unit/config.test.js tests/unit/errors.test.js tests/unit/models-real.test.js tests/unit/users-rules.test.js tests/unit/openapi-input-contract.test.js tests/integration/api.test.js",
-    "test:unit": "node --test tests/unit/config.test.js tests/unit/errors.test.js tests/unit/models-real.test.js tests/unit/users-rules.test.js tests/unit/openapi-input-contract.test.js",
-    "test:coverage": "node --test --experimental-test-coverage --test-concurrency=1 tests/unit/config.test.js tests/unit/errors.test.js tests/unit/models-real.test.js tests/unit/users-rules.test.js tests/unit/openapi-input-contract.test.js tests/integration/api.test.js"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test:unit": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand tests/unit",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --coverage"
   },
   "engines": {
     "node": ">=18"
@@ -30,6 +30,7 @@
   "devDependencies": {
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "jest": "^30.5.2",
     "nodemon": "^3.1.14"
   }
 }
