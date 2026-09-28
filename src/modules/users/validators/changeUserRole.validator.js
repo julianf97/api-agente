@@ -1,3 +1,4 @@
+import { USER_ID_MAX } from '../../../constants/validation-limits.js';
 import { body, checkExact, param } from 'express-validator';
 import {
   USER_ROLES,
@@ -9,7 +10,7 @@ export const changeUserRoleValidation = [
     .matches(/^[1-9]\d*$/)
     .withMessage(MESSAGES.ID_MUST_BE_POSITIVE_INTEGER)
     .bail()
-    .custom((value) => Number(value) <= 2_147_483_647)
+    .custom((value) => Number(value) <= USER_ID_MAX)
     .withMessage(MESSAGES.ID_INVALID)
     .toInt(),
 
