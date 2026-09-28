@@ -2,6 +2,8 @@ import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 import bcrypt from 'bcrypt';
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 
 // These checks run before any application module can instantiate a model.
 const liveSchema = process.env.DB_SCHEMA;
@@ -18,6 +20,9 @@ let User;
 let Invoice;
 let openApiDocument;
 const observedResponses = new Map();
+const ajv = new Ajv({ allErrors: true, strict: false });
+addFormats(ajv);
+const responseValidators = new Map();
 
 function documentedRoute(path, method) {
   const pathname = new URL(path, 'http://localhost').pathname;
@@ -55,6 +60,34 @@ function assertSuccessContract(route, status, data) {
   }
 }
 
+function assertOpenApiResponse(route, status, headers, data) {
+  const [method, path] = route.split(' ');
+  const operation = openApiDocument.paths[path]?.[method.toLowerCase()];
+  const documented = operation?.responses[String(status)];
+  assert.ok(documented, `${route}: HTTP ${status} is not documented in OpenAPI`);
+
+  const media = documented.content?.['application/json'];
+  if (!media) {
+    assert.equal(data, null, `${route} HTTP ${status}: unexpected response body`);
+    return;
+  }
+  assert.match(headers.get('content-type') ?? '', /^application\/json(?:;|$)/i,
+    `${route} HTTP ${status}: incorrect Content-Type`);
+  assert.ok(data !== null && typeof data === 'object' && !Array.isArray(data),
+    `${route} HTTP ${status}: expected JSON object`);
+
+  const key = `${route} ${status}`;
+  if (!responseValidators.has(key)) {
+    assert.ok(media.schema, `${key}: missing response schema`);
+    responseValidators.set(key, ajv.compile({
+      $ref: media.schema.$ref,
+      components: openApiDocument.components,
+    }));
+  }
+  const validate = responseValidators.get(key);
+  assert.ok(validate(data), `${key}: ${ajv.errorsText(validate.errors)}; body: ${JSON.stringify(data)}`);
+}
+
 const password = 'StrongPass123!';
 const userData = (suffix, role = 'regular') => ({
   username: `test_${suffix}`,
@@ -81,6 +114,7 @@ async function request(path, { method = 'GET', token, body, rawBody, headers = {
     if (!observedResponses.has(route)) observedResponses.set(route, new Set());
     observedResponses.get(route).add(response.status);
     assertSuccessContract(route, response.status, data);
+    assertOpenApiResponse(route, response.status, response.headers, data);
   }
   return { status: response.status, data, headers: response.headers };
 }
