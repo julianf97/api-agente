@@ -1,8 +1,6 @@
 import 'dotenv/config';
 import { Sequelize } from 'sequelize';
 
-const databaseSchema = process.env.DB_SCHEMA;
-
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -15,11 +13,7 @@ const sequelize = new Sequelize(
 );
 
 async function initializeDatabase() {
-  const { registerModels } = await import('../models/index.js');
-
-  registerModels(sequelize, databaseSchema);
   await sequelize.authenticate();
-  await sequelize.sync({ alter: false });
 }
 
 export { initializeDatabase, sequelize };

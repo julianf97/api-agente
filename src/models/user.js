@@ -1,37 +1,42 @@
 import { DataTypes } from 'sequelize';
+import { sequelize } from '../db/index.js';
 
-export default function defineUser(sequelize, schema) {
-  return sequelize.define(
-    'User',
-    {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-      },
-      name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
-      passwordHash: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      role: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        defaultValue: 'user',
+const User = sequelize.define(
+  'User',
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    username: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true,
+    },
+    email: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true,
+    },
+    passwordHash: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    role: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'regular',
+      validate: {
+        isIn: [['admin', 'regular']],
       },
     },
-    {
-      schema,
-      tableName: 'users',
-      timestamps: true,
-    },
-  );
-}
+  },
+  {
+    schema: process.env.DB_SCHEMA,
+    tableName: 'users',
+    timestamps: true,
+  },
+);
+
+export default User;
