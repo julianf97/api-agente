@@ -16,6 +16,17 @@ let baseUrl;
 let sequelize;
 let User;
 let Invoice;
+let openApiDocument;
+const observedResponses = new Map();
+
+function documentedRoute(path, method) {
+  const pathname = new URL(path, 'http://localhost').pathname;
+  if (pathname === '/auth/login') return `${method} /auth/login`;
+  if (pathname === '/users') return `${method} /users`;
+  if (/^\/users\/[^/]+\/role$/.test(pathname)) return `${method} /users/{id}/role`;
+  if (/^\/users\/[^/]+$/.test(pathname)) return `${method} /users/{id}`;
+  return null;
+}
 
 const password = 'StrongPass123!';
 const userData = (suffix, role = 'regular') => ({
@@ -38,6 +49,11 @@ async function request(path, { method = 'GET', token, body, rawBody, headers = {
   const text = await response.text();
   let data;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  const route = documentedRoute(path, method.toUpperCase());
+  if (route) {
+    if (!observedResponses.has(route)) observedResponses.set(route, new Set());
+    observedResponses.get(route).add(response.status);
+  }
   return { status: response.status, data, headers: response.headers };
 }
 
@@ -83,6 +99,18 @@ before(async () => {
   assert.equal(Invoice.getTableName().schema, testSchema);
   await sequelize.authenticate();
   await sequelize.sync();
+  const [foreignKeys] = await sequelize.query(`
+    SELECT c.confdeltype
+    FROM pg_constraint c
+    JOIN pg_class t ON t.oid = c.conrelid
+    JOIN pg_namespace n ON n.oid = t.relnamespace
+    WHERE n.nspname = :schema AND t.relname = 'invoices' AND c.contype = 'f'
+  `, { replacements: { schema: testSchema } });
+  assert.ok(
+    foreignKeys.some(({ confdeltype }) => confdeltype === 'r' || confdeltype === 'a'),
+    'invoices.userId must block deleting a user with invoices; existing test-schema constraints may need ON DELETE RESTRICT',
+  );
+  ({ openApiDocument } = await import('../../src/swagger/index.js'));
   const { default: app } = await import('../../src/app.js');
   appServer = app.listen(0);
   await new Promise((resolve, reject) => {
@@ -266,4 +294,275 @@ test('delete removes a user and refuses one with related invoices', async () => 
   const blocked = await request(`/users/${billed.id}`, { method: 'DELETE', token });
   assert.equal(blocked.status, 409, JSON.stringify(blocked.data));
   assert.ok(await User.findByPk(billed.id));
+});
+
+test('login validates each field and rejects unexpected input without leaking passwords', async () => {
+  const cases = [
+    [{ password }, 'email'],
+    [{ email: 'test@example.com' }, 'password'],
+    [{ email: 42, password }, 'email'],
+    [{ email: 'invalid', password }, 'email'],
+    [{ email: '', password }, 'email'],
+    [{ email: 'test@example.com', password: 42 }, 'password'],
+    [{ email: 'test@example.com', password: '' }, 'password'],
+    [{ email: 'test@example.com', password, extra: 'x' }, 'extra'],
+  ];
+  for (const [body, field] of cases) {
+    const response = await request('/auth/login', { method: 'POST', body });
+    assert.equal(response.status, 400, JSON.stringify(body));
+    assert.ok(response.data.errors.some((error) => error.field === field), JSON.stringify(response.data));
+    assert.doesNotMatch(JSON.stringify(response.data), /StrongPass123!/);
+  }
+});
+
+test('tokens reject malformed, expired, wrong signature and deleted account', async () => {
+  const jwt = (await import('jsonwebtoken')).default;
+  const { user, token } = await actor('auth');
+  const cases = [
+    { headers: { Authorization: `Basic ${token}` } },
+    { token: 'malformed.token' },
+    { token: jwt.sign({ role: 'superadmin' }, 'wrong-secret', { subject: String(user.id) }) },
+    { token: jwt.sign({ role: 'superadmin' }, process.env.JWT_SECRET, { subject: String(user.id), expiresIn: -1 }) },
+    { token: jwt.sign({ role: 'superadmin' }, process.env.JWT_SECRET, { subject: 'invalid' }) },
+  ];
+  for (const options of cases) {
+    assert.equal((await request('/users', options)).status, 401);
+  }
+  await user.destroy();
+  assert.equal((await request('/users', { token })).status, 401);
+});
+
+test('list includes disabled users, supports default and boundary pagination, rejects invalid query', async () => {
+  const { token } = await actor('reader', 'regular');
+  const { user: disabled } = await seedUser('disabled', 'regular', false);
+  const defaults = await request('/users', { token });
+  assert.equal(defaults.status, 200);
+  assert.equal(defaults.data.pagination.page, 1);
+  assert.equal(defaults.data.pagination.limit, 20);
+  assert.ok(defaults.data.users.some((user) => user.id === disabled.id && user.enabled === false));
+  for (const query of ['page=1&limit=100', 'page=100&limit=1']) {
+    const response = await request(`/users?${query}`, { token });
+    assert.equal(response.status, 200);
+    assertNoPassword(response.data);
+  }
+  const empty = await request('/users?page=100&limit=1', { token });
+  assert.deepEqual(empty.data.users, []);
+  for (const query of ['page=0', 'page=-1', 'page=foo', 'limit=0', 'limit=101', 'limit=foo', 'extra=1']) {
+    const response = await request(`/users?${query}`, { token });
+    assert.equal(response.status, 400, query);
+  }
+});
+
+test('read by ID allows every role and handles missing, malformed and out-of-range IDs', async () => {
+  const { token: regular } = await actor('regular', 'regular');
+  const { token: admin } = await actor('admin', 'admin');
+  const { token: superadmin } = await actor('superadmin');
+  const { user: target } = await seedUser('target', 'regular', false);
+  for (const token of [regular, admin, superadmin]) {
+    const response = await request(`/users/${target.id}`, { token });
+    assert.equal(response.status, 200);
+    assert.equal(response.data.enabled, false);
+    assertNoPassword(response.data);
+  }
+  for (const id of ['0', '-1', 'abc', '2147483648']) {
+    assert.equal((await request(`/users/${id}`, { token: regular })).status, 400, id);
+  }
+  assert.equal((await request('/users/999999', { token: regular })).status, 404);
+});
+
+test('create accepts default role and allowed roles, trims username and normalizes email', async () => {
+  const { token: admin } = await actor('admin', 'admin');
+  const { token: superadmin } = await actor('superadmin');
+  const first = await request('/users', {
+    method: 'POST', token: admin,
+    body: { username: '  trimmed  ', email: 'UPPER@example.com', password },
+  });
+  assert.equal(first.status, 201, JSON.stringify(first.data));
+  assert.equal(first.data.username, 'trimmed');
+  assert.equal(first.data.email, 'upper@example.com');
+  assert.equal(first.data.role, 'regular');
+  assert.equal(first.data.enabled, true);
+  const second = await request('/users', {
+    method: 'POST', token: superadmin,
+    body: userData('new_admin', 'admin'),
+  });
+  assert.equal(second.status, 201);
+  assert.equal(second.data.role, 'admin');
+  assertNoPassword(second.data);
+});
+
+test('create rejects every required-field, type, length, role and unknown-field category', async () => {
+  const { token } = await actor('root');
+  const valid = userData('candidate');
+  const invalid = [
+    [{ ...valid, username: undefined }, 'username'],
+    [{ ...valid, username: 42 }, 'username'],
+    [{ ...valid, username: '   ' }, 'username'],
+    [{ ...valid, username: 'a'.repeat(256) }, 'username'],
+    [{ ...valid, email: undefined }, 'email'],
+    [{ ...valid, email: 42 }, 'email'],
+    [{ ...valid, email: 'invalid' }, 'email'],
+    [{ ...valid, email: 'a'.repeat(250) + '@x.com' }, 'email'],
+    [{ ...valid, password: undefined }, 'password'],
+    [{ ...valid, password: 42 }, 'password'],
+    [{ ...valid, password: '    ' }, 'password'],
+    [{ ...valid, password: 'é'.repeat(37) }, 'password'],
+    [{ ...valid, role: 42 }, 'role'],
+    [{ ...valid, role: 'superadmin' }, 'role'],
+    [{ ...valid, unexpected: true }, 'unexpected'],
+  ];
+  for (const [body, field] of invalid) {
+    const result = await request('/users', { method: 'POST', token, body });
+    assert.equal(result.status, 400, `${field}: ${JSON.stringify(result.data)}`);
+    assert.ok(result.data.errors.some((error) => error.field === field), JSON.stringify(result.data));
+  }
+  assert.equal(await User.count(), 1);
+});
+
+test('update validates ID, body fields and conflicts without modifying the target', async () => {
+  const { token } = await actor('root');
+  const { user } = await seedUser('target');
+  const { user: existing } = await seedUser('existing');
+  for (const id of ['0', '-1', 'abc', '2147483648']) {
+    assert.equal((await request(`/users/${id}`, { method: 'PATCH', token, body: { enabled: false } })).status, 400, id);
+  }
+  const invalid = [
+    [{}, 'body'],
+    [{ username: 42 }, 'username'],
+    [{ username: '  ' }, 'username'],
+    [{ username: 'a'.repeat(256) }, 'username'],
+    [{ email: 42 }, 'email'],
+    [{ email: 'broken' }, 'email'],
+    [{ email: 'a'.repeat(250) + '@x.com' }, 'email'],
+    [{ password: 42 }, 'password'],
+    [{ password: '  ' }, 'password'],
+    [{ password: 'é'.repeat(37) }, 'password'],
+    [{ enabled: 'yes' }, 'enabled'],
+    [{ role: 'admin' }, 'role'],
+    [{ extra: true }, 'extra'],
+  ];
+  for (const [body] of invalid) {
+    const result = await request(`/users/${user.id}`, { method: 'PATCH', token, body });
+    assert.equal(result.status, 400, JSON.stringify(body));
+  }
+  for (const body of [{ username: existing.username }, { email: existing.email }]) {
+    assert.equal((await request(`/users/${user.id}`, { method: 'PATCH', token, body })).status, 409);
+  }
+  await user.reload();
+  assert.equal(user.username, 'test_target');
+  assert.equal(user.email, 'test_target@example.com');
+  assert.equal(user.enabled, true);
+  assert.equal((await request('/users/99999', { method: 'PATCH', token, body: { enabled: false } })).status, 404);
+});
+
+test('update permission matrix and enabled toggle', async () => {
+  const { user: root, token: superadmin } = await actor('root');
+  const { user: adminUser, token: admin } = await actor('admin', 'admin');
+  const { user: regularUser, token: regular } = await actor('regular', 'regular');
+  const allowed = await request(`/users/${regularUser.id}`, { method: 'PATCH', token: admin, body: { enabled: false } });
+  assert.equal(allowed.status, 200);
+  assert.equal(allowed.data.enabled, false);
+  assert.equal((await request('/auth/login', {
+    method: 'POST', body: { email: 'test_regular@example.com', password },
+  })).status, 401);
+  assert.equal((await request(`/users/${regularUser.id}`, { method: 'PATCH', token: admin, body: { enabled: true } })).status, 200);
+  assert.equal((await request(`/users/${adminUser.id}`, { method: 'PATCH', token: superadmin, body: { username: 'edited_admin' } })).status, 200);
+  assert.equal((await request(`/users/${root.id}`, { method: 'PATCH', token: superadmin, body: { username: 'edited_root' } })).status, 200);
+  assert.equal((await request(`/users/${adminUser.id}`, { method: 'PATCH', token: admin, body: { username: 'forbidden' } })).status, 403);
+  assert.equal((await request(`/users/${root.id}`, { method: 'PATCH', token: admin, body: { username: 'forbidden' } })).status, 403);
+  assert.equal((await request(`/users/${regularUser.id}`, { method: 'PATCH', token: regular, body: { username: 'forbidden' } })).status, 403);
+  assert.equal((await request(`/users/${root.id}`, { method: 'PATCH', token: superadmin, body: { enabled: false } })).status, 403);
+});
+
+test('role endpoint validates ID and body and covers promotion, demotion and permissions', async () => {
+  const { user: root, token: superadmin } = await actor('root');
+  const { user: adminUser, token: admin } = await actor('admin', 'admin');
+  const { user: regularUser, token: regular } = await actor('regular', 'regular');
+  for (const id of ['0', '-1', 'abc', '2147483648']) {
+    assert.equal((await request(`/users/${id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status, 400, id);
+  }
+  for (const body of [{}, { role: 'superadmin' }, { role: 42 }, { role: 'admin', extra: true }]) {
+    assert.equal((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: superadmin, body })).status, 400, JSON.stringify(body));
+  }
+  assert.equal((await request('/users/99999/role', { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status, 404);
+  assert.equal((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: admin, body: { role: 'admin' } })).status, 403);
+  assert.equal((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: regular, body: { role: 'admin' } })).status, 403);
+  assert.equal((await request(`/users/${root.id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status, 403);
+  const promoted = await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'admin' } });
+  assert.equal(promoted.status, 200);
+  assert.equal(promoted.data.role, 'admin');
+  const demoted = await request(`/users/${adminUser.id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'regular' } });
+  assert.equal(demoted.status, 200);
+  assert.equal(demoted.data.role, 'regular');
+});
+
+test('delete validates IDs and covers admin/superadmin permission matrix', async () => {
+  const { user: root, token: superadmin } = await actor('root');
+  const { user: adminUser, token: admin } = await actor('admin', 'admin');
+  const { user: regularUser, token: regular } = await actor('regular', 'regular');
+  for (const id of ['0', '-1', 'abc', '2147483648']) {
+    assert.equal((await request(`/users/${id}`, { method: 'DELETE', token: superadmin })).status, 400, id);
+  }
+  assert.equal((await request('/users/99999', { method: 'DELETE', token: superadmin })).status, 404);
+  assert.equal((await request(`/users/${regularUser.id}`, { method: 'DELETE', token: regular })).status, 403);
+  assert.equal((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: admin })).status, 403);
+  assert.equal((await request(`/users/${root.id}`, { method: 'DELETE', token: superadmin })).status, 403);
+  assert.equal((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: superadmin })).status, 204);
+  assert.equal((await request(`/users/${regularUser.id}`, { method: 'DELETE', token: admin })).status, 204);
+});
+
+test('unexpected persistence failures return documented 500 on every endpoint', async () => {
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    async function fails(model, method, path, options) {
+      const original = model[method];
+      model[method] = async () => { throw new Error('Simulated database failure'); };
+      try {
+        const result = await request(path, options);
+        assert.equal(result.status, 500, `${options?.method ?? 'GET'} ${path}: ${JSON.stringify(result.data)}`);
+        assert.deepEqual(result.data, { error: 'Error interno del servidor.' });
+      } finally {
+        model[method] = original;
+      }
+    }
+    await fails(User, 'findOne', '/auth/login', { method: 'POST', body: { email: 'x@example.com', password } });
+    const { token } = await actor('root');
+    await fails(User, 'findAndCountAll', '/users', { token });
+    await fails(User, 'create', '/users', { method: 'POST', token, body: userData('failure') });
+    const originalFind = User.findByPk;
+    User.findByPk = async (id, ...args) => {
+      if (String(id) === '99999') throw new Error('Simulated database failure');
+      return originalFind.call(User, id, ...args);
+    };
+    try {
+      const cases = [
+        ['/users/99999', { token }],
+        ['/users/99999', { method: 'PATCH', token, body: { enabled: false } }],
+        ['/users/99999/role', { method: 'PATCH', token, body: { role: 'admin' } }],
+        ['/users/99999', { method: 'DELETE', token }],
+      ];
+      for (const [path, options] of cases) {
+        const result = await request(path, options);
+        assert.equal(result.status, 500, `${options.method ?? 'GET'} ${path}`);
+        assert.deepEqual(result.data, { error: 'Error interno del servidor.' });
+      }
+    } finally {
+      User.findByPk = originalFind;
+    }
+  } finally {
+    console.error = originalError;
+  }
+});
+
+test('every documented HTTP response has an exercised integration scenario', () => {
+  for (const [path, operations] of Object.entries(openApiDocument.paths)) {
+    for (const [method, operation] of Object.entries(operations)) {
+      const route = `${method.toUpperCase()} ${path}`;
+      const observed = observedResponses.get(route) ?? new Set();
+      for (const status of Object.keys(operation.responses)) {
+        assert.ok(observed.has(Number(status)), `${route}: missing scenario for documented HTTP ${status}`);
+      }
+    }
+  }
 });
