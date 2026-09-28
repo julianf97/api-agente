@@ -99,3 +99,15 @@ The suite records the HTTP statuses it receives for each OpenAPI operation and f
 | `DELETE /users/{id}` | Permitted actor/target pairs, no response body | Invalid and out-of-range IDs | Forbidden actor/target pairs, disabled actor | Missing ID 404, invoice relation 409, injected database 500 |
 
 Run `npm run test:coverage` to see line and branch coverage. A response-code check compares the HTTP statuses exercised by the suite with all statuses declared in OpenAPI. The table is the finite inventory of currently identified input categories and business rules; it must be revised when requirements or routes change.
+
+## Unit tests and error paths
+
+```sh
+npm run test:unit      # Pure rules and error handling; PostgreSQL is not needed
+npm test               # Unit tests plus HTTP/PostgreSQL integration tests
+npm run test:coverage  # Combined line and branch report
+```
+
+Unit tests exercise all actor/target/destination role combinations, guard defenses (including an attempted role edit outside its endpoint), password hashing, response projection, real/test model schema selection, database initialization mode, missing JWT configuration, and error mapping. They also test classification of username/email uniqueness conflicts from each Sequelize/PostgreSQL metadata form, the fallback 500 for an unknown unique constraint, and unexpected-error detail shielding. The HTTP suite additionally injects a database failure during bearer authentication and checks its 500 response. The earlier unreachable controller-side 404 checks were removed; `findExistingUserById` throws `UserNotFoundError`, which the central error handler maps to 404.
+
+A coverage percentage measures executed code branches, not completeness of business requirements. The HTTP/PostgreSQL tests require a local test schema and are intentionally not run by `npm run test:unit`.
