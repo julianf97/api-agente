@@ -81,3 +81,7 @@ npm test
 ```
 
 The test runner sets `DB_USE_TEST_SCHEMA=true` before importing application modules. It refuses to run if `DB_TEST_SCHEMA` is missing, equals `DB_SCHEMA`, or is `public`. It creates missing model tables with `sync()` and **deletes all rows from the test schema's `users` and `invoices` tables before each test**. Never put data you wish to keep in those test tables. The suite does not start `src/server.js` or use the application's configured port.
+
+### Response coverage
+
+The suite records the HTTP statuses it receives for each OpenAPI operation and fails if any documented response code has no exercised scenario. It also covers representative invalid values for each validated field, ID and pagination boundaries, the role permission matrix, disabled/deleted users, duplicate keys, password hashing, and the invoice deletion restriction. Database failures are deliberately injected at the Sequelize model boundary to exercise the documented 500 response; ordinary success and 4xx cases use the real PostgreSQL test schema. A passing run covers the documented response categories, not every mathematically possible request or every future business rule. Add scenarios whenever routes or documented responses change.
