@@ -1,5 +1,5 @@
-// src/models/invoice.model.js
 import { DataTypes } from 'sequelize';
+import { INVOICE_STATUSES } from '../constants/constants.js';
 import { sequelize } from '../db/index.js';
 import User from './user.js';
 
@@ -33,7 +33,7 @@ const Invoice = sequelize.define(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('draft', 'issued', 'paid', 'cancelled'),
+      type: DataTypes.ENUM(...Object.values(INVOICE_STATUSES)),
       allowNull: false,
     },
     issuedAt: {

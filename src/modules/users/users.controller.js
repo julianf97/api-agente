@@ -1,22 +1,53 @@
+import { matchedData } from 'express-validator';
+import { handleUserNotFound } from '../../errors/handle-user-not-found.js';
 import {
   createUser as createUserService,
+  listUsers as listUsersService,
+  getUserById as getUserByIdService,
   updateUser as updateUserService,
+  changeUserRole as changeUserRoleService,
   deleteUser as deleteUserService,
 } from './users.service.js';
+import { toUserResponse } from './users.presenter.js';
 
 export async function createUser(req, res, next) {
   try {
-    const user = await createUserService(req.validatedBody);
+    const user = await createUserService(req.validatedBody, req.auth);
 
-    return res.status(201).json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      enabled: user.enabled,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+    return res.status(201).json(toUserResponse(user));
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function listUsers(req, res, next) {
+  try {
+    const pagination = matchedData(req, { locations: ['query'] });
+    const result = await listUsersService(pagination);
+
+    return res.status(200).json({
+      users: result.users.map(toUserResponse),
+      pagination: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
     });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function getUserById(req, res, next) {
+  try {
+    const user = await getUserByIdService(req.params.id);
+
+    if (handleUserNotFound(user, res)) {
+      return;
+    }
+
+    return res.status(200).json(toUserResponse(user));
   } catch (error) {
     return next(error);
   }
@@ -24,23 +55,35 @@ export async function createUser(req, res, next) {
 
 export async function updateUser(req, res, next) {
   try {
-    const user = await updateUserService(req.params.id, req.validatedBody);
+    const user = await updateUserService(
+      req.params.id,
+      req.validatedBody,
+      req.auth,
+    );
 
-    if (!user) {
-      return res.status(404).json({
-        error: 'Usuario no encontrado.',
-      });
+    if (handleUserNotFound(user, res)) {
+      return;
     }
 
-    return res.status(200).json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      enabled: user.enabled,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    });
+    return res.status(200).json(toUserResponse(user));
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function changeUserRole(req, res, next) {
+  try {
+    const user = await changeUserRoleService(
+      req.params.id,
+      req.validatedBody.role,
+      req.auth,
+    );
+
+    if (handleUserNotFound(user, res)) {
+      return;
+    }
+
+    return res.status(200).json(toUserResponse(user));
   } catch (error) {
     return next(error);
   }
@@ -48,12 +91,10 @@ export async function updateUser(req, res, next) {
 
 export async function deleteUser(req, res, next) {
   try {
-    const deleted = await deleteUserService(req.params.id);
+    const deleted = await deleteUserService(req.params.id, req.auth);
 
-    if (!deleted) {
-      return res.status(404).json({
-        error: 'Usuario no encontrado.',
-      });
+    if (handleUserNotFound(deleted, res)) {
+      return;
     }
 
     return res.status(204).send();

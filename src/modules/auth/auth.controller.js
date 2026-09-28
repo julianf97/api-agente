@@ -1,3 +1,4 @@
+import { AUTH_ERROR_MESSAGES } from '../../constants/constants.js';
 import { login as loginService } from './auth.service.js';
 
 export async function login(req, res, next) {
@@ -6,7 +7,7 @@ export async function login(req, res, next) {
 
     if (!result) {
       return res.status(401).json({
-        error: 'Credenciales inválidas.',
+        error: AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS,
       });
     }
 

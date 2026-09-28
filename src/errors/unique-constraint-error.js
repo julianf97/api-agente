@@ -1,4 +1,5 @@
 import { UniqueConstraintError } from 'sequelize';
+import { USER_ERROR_MESSAGES } from '../constants/constants.js';
 
 export function handleUniqueConstraintError(error, res) {
   if (!(error instanceof UniqueConstraintError)) {
@@ -18,7 +19,7 @@ export function handleUniqueConstraintError(error, res) {
 
   if (isUsernameConflict) {
     res.status(409).json({
-      error: 'El nombre de usuario ya está registrado.',
+      error: USER_ERROR_MESSAGES.USERNAME_ALREADY_EXISTS,
     });
 
     return true;
@@ -32,13 +33,13 @@ export function handleUniqueConstraintError(error, res) {
 
   if (isEmailConflict) {
     res.status(409).json({
-      error: 'El email ya está registrado.',
+      error: USER_ERROR_MESSAGES.EMAIL_ALREADY_EXISTS,
     });
 
     return true;
   }
 
-  console.error('Restricción única no identificada:', {
+  console.error(USER_ERROR_MESSAGES.UNIQUE_CONSTRAINT_FAILED, {
     constraint,
     detail,
     fields,
@@ -46,7 +47,7 @@ export function handleUniqueConstraintError(error, res) {
   });
 
   res.status(500).json({
-    error: 'No se pudo procesar la creación del usuario.',
+    error: USER_ERROR_MESSAGES.UNIQUE_CONSTRAINT_FAILED,
   });
 
   return true;

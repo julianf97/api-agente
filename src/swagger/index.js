@@ -1,19 +1,46 @@
 import swaggerUi from 'swagger-ui-express';
+import { USER_ROLES } from '../constants/constants.js';
+
+const userRoles = [
+  USER_ROLES.REGULAR,
+  USER_ROLES.ADMIN,
+  USER_ROLES.SUPERADMIN,
+];
+
+const assignableRoles = [
+  USER_ROLES.REGULAR,
+  USER_ROLES.ADMIN,
+];
+
+const userIdParameter = {
+  name: 'id',
+  in: 'path',
+  required: true,
+  description: 'ID del usuario.',
+  schema: {
+    type: 'integer',
+    minimum: 1,
+    maximum: 2147483647,
+  },
+};
 
 const openApiDocument = {
   openapi: '3.0.3',
+
   info: {
     title: 'DEMO Sicorp',
     version: '1.0.0',
     description:
       'API de demostración con datos ficticios de usuarios y facturas para evaluar la automatización de procesos mediante agentes de IA.',
   },
+
   paths: {
     '/auth/login': {
       post: {
         tags: ['Auth'],
         summary: 'Iniciar sesión',
-        description: 'Devuelve un token si el email y la contraseña son correctos.',
+        description:
+          'Devuelve un token si las credenciales son correctas y el usuario está habilitado.',
         requestBody: {
           required: true,
           content: {
@@ -39,7 +66,8 @@ const openApiDocument = {
             description: 'Los datos enviados no son válidos.',
           },
           401: {
-            description: 'Credenciales inválidas.',
+            description:
+              'Credenciales inválidas o usuario deshabilitado.',
           },
           500: {
             description: 'Error interno del servidor.',
@@ -49,11 +77,65 @@ const openApiDocument = {
     },
 
     '/users': {
+      get: {
+        tags: ['Users'],
+        summary: 'Listar usuarios',
+        description:
+          'Disponible para regular, admin y superadmin. Incluye usuarios habilitados y deshabilitados.',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'page',
+            in: 'query',
+            description: 'Número de página. Por defecto: 1.',
+            schema: {
+              type: 'integer',
+              minimum: 1,
+              default: 1,
+            },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            description: 'Usuarios por página. Por defecto: 20.',
+            schema: {
+              type: 'integer',
+              minimum: 1,
+              maximum: 100,
+              default: 20,
+            },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Listado paginado de usuarios.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/UserListResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description:
+              'Los parámetros de paginación no son válidos.',
+          },
+          401: {
+            description:
+              'Falta el token, es inválido o el usuario está deshabilitado.',
+          },
+          500: {
+            description: 'Error interno del servidor.',
+          },
+        },
+      },
+
       post: {
         tags: ['Users'],
         summary: 'Crear un usuario',
         description:
-          'Requiere un token de administrador. Guarda la contraseña como hash. Si no se envía un rol, el modelo asigna regular.',
+          'Admin puede crear usuarios regular. Superadmin puede crear usuarios regular o admin. No se puede crear otro superadmin. La contraseña se guarda como hash; el usuario se crea habilitado y el rol predeterminado es regular.',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -80,13 +162,16 @@ const openApiDocument = {
             description: 'Los datos enviados no son válidos.',
           },
           401: {
-            description: 'Falta el token o el token no es válido.',
+            description:
+              'Falta el token, es inválido o el usuario está deshabilitado.',
           },
           403: {
-            description: 'El usuario autenticado no tiene rol admin.',
+            description:
+              'El rol del solicitante no permite crear usuarios con el rol indicado.',
           },
           409: {
-            description: 'El username o el email ya está registrado.',
+            description:
+              'El username o el email ya está registrado.',
           },
           500: {
             description: 'Error interno del servidor.',
@@ -96,25 +181,47 @@ const openApiDocument = {
     },
 
     '/users/{id}': {
-      patch: {
+      get: {
         tags: ['Users'],
-        summary: 'Editar un usuario',
+        summary: 'Obtener un usuario por ID',
         description:
-          'Requiere un token de administrador. Actualiza únicamente los campos enviados. Si se envía una nueva contraseña, se guarda como hash.',
+          'Disponible para regular, admin y superadmin. También permite consultar usuarios deshabilitados.',
         security: [{ bearerAuth: [] }],
-        parameters: [
-          {
-            name: 'id',
-            in: 'path',
-            required: true,
-            description: 'ID del usuario a editar.',
-            schema: {
-              type: 'integer',
-              minimum: 1,
-              maximum: 2147483647,
+        parameters: [userIdParameter],
+        responses: {
+          200: {
+            description: 'Usuario encontrado.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/UserResponse',
+                },
+              },
             },
           },
-        ],
+          400: {
+            description: 'El ID no es válido.',
+          },
+          401: {
+            description:
+              'Falta el token, es inválido o el usuario está deshabilitado.',
+          },
+          404: {
+            description: 'Usuario no encontrado.',
+          },
+          500: {
+            description: 'Error interno del servidor.',
+          },
+        },
+      },
+
+      patch: {
+        tags: ['Users'],
+        summary: 'Editar los datos de un usuario',
+        description:
+          'Admin solo puede editar usuarios regular. Superadmin puede editar usuarios regular y admin, además de sus propios datos. Esta operación no cambia el rol ni el estado enabled.',
+        security: [{ bearerAuth: [] }],
+        parameters: [userIdParameter],
         requestBody: {
           required: true,
           content: {
@@ -137,19 +244,23 @@ const openApiDocument = {
             },
           },
           400: {
-            description: 'El ID o los datos enviados no son válidos.',
+            description:
+              'El ID o los datos enviados no son válidos.',
           },
           401: {
-            description: 'Falta el token o el token no es válido.',
+            description:
+              'Falta el token, es inválido o el usuario está deshabilitado.',
           },
           403: {
-            description: 'El usuario autenticado no tiene rol admin.',
+            description:
+              'El solicitante no puede editar al usuario indicado.',
           },
           404: {
             description: 'Usuario no encontrado.',
           },
           409: {
-            description: 'El username o el email ya está registrado.',
+            description:
+              'El username o el email ya está registrado.',
           },
           500: {
             description: 'Error interno del servidor.',
@@ -159,41 +270,84 @@ const openApiDocument = {
 
       delete: {
         tags: ['Users'],
-        summary: 'Eliminar un usuario',
+        summary: 'Eliminar físicamente un usuario',
         description:
-          'Requiere un token de administrador. No elimina usuarios que tengan registros relacionados, como facturas.',
+          'Admin solo puede eliminar usuarios regular. Superadmin puede eliminar usuarios regular y admin. La cuenta superadmin no se puede eliminar. Un usuario con registros relacionados, como facturas, no se puede eliminar.',
         security: [{ bearerAuth: [] }],
-        parameters: [
-          {
-            name: 'id',
-            in: 'path',
-            required: true,
-            description: 'ID del usuario a eliminar.',
-            schema: {
-              type: 'integer',
-              minimum: 1,
-              maximum: 2147483647,
-            },
-          },
-        ],
+        parameters: [userIdParameter],
         responses: {
           204: {
-            description: 'Usuario eliminado. La respuesta no contiene un body.',
+            description:
+              'Usuario eliminado. La respuesta no contiene un body.',
           },
           400: {
             description: 'El ID no es válido.',
           },
           401: {
-            description: 'Falta el token o el token no es válido.',
+            description:
+              'Falta el token, es inválido o el usuario está deshabilitado.',
           },
           403: {
-            description: 'El usuario autenticado no tiene rol admin.',
+            description:
+              'El solicitante no puede eliminar al usuario indicado.',
           },
           404: {
             description: 'Usuario no encontrado.',
           },
           409: {
-            description: 'No se puede eliminar el usuario porque tiene registros relacionados.',
+            description:
+              'No se puede eliminar el usuario porque tiene registros relacionados.',
+          },
+          500: {
+            description: 'Error interno del servidor.',
+          },
+        },
+      },
+    },
+
+    '/users/{id}/role': {
+      patch: {
+        tags: ['Users'],
+        summary: 'Cambiar el rol de un usuario',
+        description:
+          'Exclusivo de superadmin. Permite cambiar entre regular y admin. No permite modificar el rol de la cuenta superadmin ni asignar superadmin a otra cuenta.',
+        security: [{ bearerAuth: [] }],
+        parameters: [userIdParameter],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ChangeUserRoleRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Rol actualizado.',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/UserResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description:
+              'El ID o el rol enviado no son válidos.',
+          },
+          401: {
+            description:
+              'Falta el token, es inválido o el usuario está deshabilitado.',
+          },
+          403: {
+            description:
+              'Se requiere superadmin o se intentó cambiar el rol de la cuenta superadmin.',
+          },
+          404: {
+            description: 'Usuario no encontrado.',
           },
           500: {
             description: 'Error interno del servidor.',
@@ -237,7 +391,8 @@ const openApiDocument = {
         properties: {
           accessToken: {
             type: 'string',
-            description: 'JWT para enviar en el encabezado Authorization.',
+            description:
+              'JWT para enviar en el encabezado Authorization.',
           },
           tokenType: {
             type: 'string',
@@ -277,9 +432,9 @@ const openApiDocument = {
           },
           role: {
             type: 'string',
-            enum: ['admin', 'regular'],
-            default: 'regular',
-            example: 'regular',
+            enum: assignableRoles,
+            default: USER_ROLES.REGULAR,
+            example: USER_ROLES.REGULAR,
           },
         },
       },
@@ -308,10 +463,18 @@ const openApiDocument = {
             writeOnly: true,
             example: 'nuevaContraseña123',
           },
+        },
+      },
+
+      ChangeUserRoleRequest: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['role'],
+        properties: {
           role: {
             type: 'string',
-            enum: ['admin', 'regular'],
-            example: 'regular',
+            enum: assignableRoles,
+            example: USER_ROLES.ADMIN,
           },
         },
       },
@@ -323,6 +486,7 @@ const openApiDocument = {
           'username',
           'email',
           'role',
+          'enabled',
           'createdAt',
           'updatedAt',
         ],
@@ -342,8 +506,12 @@ const openApiDocument = {
           },
           role: {
             type: 'string',
-            enum: ['admin', 'regular'],
-            example: 'regular',
+            enum: userRoles,
+            example: USER_ROLES.REGULAR,
+          },
+          enabled: {
+            type: 'boolean',
+            example: true,
           },
           createdAt: {
             type: 'string',
@@ -352,6 +520,46 @@ const openApiDocument = {
           updatedAt: {
             type: 'string',
             format: 'date-time',
+          },
+        },
+      },
+
+      UserListResponse: {
+        type: 'object',
+        required: ['users', 'pagination'],
+        properties: {
+          users: {
+            type: 'array',
+            items: {
+              $ref: '#/components/schemas/UserResponse',
+            },
+          },
+          pagination: {
+            type: 'object',
+            required: [
+              'total',
+              'page',
+              'limit',
+              'totalPages',
+            ],
+            properties: {
+              total: {
+                type: 'integer',
+                example: 34,
+              },
+              page: {
+                type: 'integer',
+                example: 1,
+              },
+              limit: {
+                type: 'integer',
+                example: 20,
+              },
+              totalPages: {
+                type: 'integer',
+                example: 2,
+              },
+            },
           },
         },
       },

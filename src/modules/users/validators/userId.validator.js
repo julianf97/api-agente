@@ -3,7 +3,7 @@ import {
   USER_VALIDATION_MESSAGES as MESSAGES,
 } from '../../../constants/constants.js';
 
-export const deleteUserValidation = [
+export const userIdValidation = [
   param('id')
     .matches(/^[1-9]\d*$/)
     .withMessage(MESSAGES.ID_MUST_BE_POSITIVE_INTEGER)

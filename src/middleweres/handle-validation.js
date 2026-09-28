@@ -1,4 +1,5 @@
 import { matchedData, validationResult } from 'express-validator';
+import { REQUEST_ERROR_MESSAGES } from '../constants/constants.js';
 
 export function handleValidation(req, res, next) {
   const result = validationResult(req);
@@ -8,7 +9,7 @@ export function handleValidation(req, res, next) {
       if (error.type === 'unknown_fields') {
         return error.fields.map(({ path }) => ({
           field: path,
-          message: 'Campo no permitido.',
+          message: REQUEST_ERROR_MESSAGES.UNKNOWN_FIELD,
         }));
       }
 

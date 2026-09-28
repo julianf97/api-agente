@@ -1,5 +1,16 @@
 import User from '../../models/user.js';
 
+export async function findUsers({ limit, offset }) {
+  return User.findAndCountAll({
+    attributes: {
+      exclude: ['passwordHash'],
+    },
+    order: [['id', 'ASC']],
+    limit,
+    offset,
+  });
+}
+
 export async function createUser(data) {
   return User.create(data);
 }

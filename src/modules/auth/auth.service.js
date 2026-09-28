@@ -6,11 +6,14 @@ import { findUserByEmail } from './auth.repository.js';
 export async function login({ email, password }) {
   const user = await findUserByEmail(email.toLowerCase());
 
-  if (!user) {
+  if (!user || !user.enabled) {
     return null;
   }
 
-  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+  const passwordMatches = await bcrypt.compare(
+    password,
+    user.passwordHash,
+  );
 
   if (!passwordMatches) {
     return null;

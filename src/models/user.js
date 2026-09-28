@@ -1,4 +1,5 @@
 import { DataTypes } from 'sequelize';
+import { USER_ROLES } from '../constants/constants.js';
 import { sequelize } from '../db/index.js';
 
 const User = sequelize.define(
@@ -26,9 +27,13 @@ const User = sequelize.define(
     role: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: 'regular',
+      defaultValue: USER_ROLES.REGULAR,
       validate: {
-        isIn: [['admin', 'regular']],
+        isIn: [[
+          USER_ROLES.REGULAR,
+          USER_ROLES.ADMIN,
+          USER_ROLES.SUPERADMIN,
+        ]],
       },
     },
     enabled: {

@@ -1,4 +1,5 @@
 import { ForeignKeyConstraintError } from 'sequelize';
+import { USER_ERROR_MESSAGES } from '../constants/constants.js';
 
 export function handleDeleteUserError(error, _req, res, next) {
   if (!(error instanceof ForeignKeyConstraintError)) {
@@ -6,6 +7,6 @@ export function handleDeleteUserError(error, _req, res, next) {
   }
 
   return res.status(409).json({
-    error: 'No se puede eliminar el usuario porque tiene registros relacionados.',
+    error: USER_ERROR_MESSAGES.HAS_RELATED_RECORDS,
   });
 }
