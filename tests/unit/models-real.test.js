@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from '@jest/globals';
 
 process.env.DB_HOST = 'localhost';
 process.env.DB_PORT = '5432';
@@ -14,7 +13,7 @@ test('both models select the real schema when test mode is disabled', async () =
   const { default: User } = await import('../../src/models/user.js');
   const { default: Invoice } = await import('../../src/models/invoice.js');
   const { sequelize } = await import('../../src/db/index.js');
-  assert.equal(User.getTableName().schema, 'unit-real');
-  assert.equal(Invoice.getTableName().schema, 'unit-real');
+  expect(User.getTableName().schema).toBe('unit-real');
+  expect(Invoice.getTableName().schema).toBe('unit-real');
   await sequelize.close();
 });
