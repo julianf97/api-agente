@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from '@jest/globals';
 import { UniqueConstraintError, ForeignKeyConstraintError } from 'sequelize';
 import { handleUniqueConstraintError } from '../../src/errors/unique-constraint-error.js';
 import { handleMalformedJsonError } from '../../src/errors/malformed-json-error.js';
@@ -30,9 +29,9 @@ test('unique constraint error detects username by constraint, fields, paths and 
   ];
   for (const options of variants) {
     const res = response();
-    assert.equal(handleUniqueConstraintError(unique(options), res), true);
-    assert.equal(res.statusCode, 409);
-    assert.equal(res.body.error, U.USERNAME_ALREADY_EXISTS);
+    expect(handleUniqueConstraintError(unique(options), res)).toBe(true);
+    expect(res.statusCode).toBe(409);
+    expect(res.body.error).toBe(U.USERNAME_ALREADY_EXISTS);
   }
 });
 
@@ -45,9 +44,9 @@ test('unique constraint error detects email by constraint, fields, paths and dat
   ];
   for (const options of variants) {
     const res = response();
-    assert.equal(handleUniqueConstraintError(unique(options), res), true);
-    assert.equal(res.statusCode, 409);
-    assert.equal(res.body.error, U.EMAIL_ALREADY_EXISTS);
+    expect(handleUniqueConstraintError(unique(options), res)).toBe(true);
+    expect(res.statusCode).toBe(409);
+    expect(res.body.error).toBe(U.EMAIL_ALREADY_EXISTS);
   }
 });
 
@@ -57,12 +56,12 @@ test('unknown unique constraint returns a controlled 500, and unrelated errors p
   let logged;
   console.error = (...args) => { logged = args; };
   try {
-    assert.equal(handleUniqueConstraintError(unique({ parent: { constraint: 'other_key' } }), res), true);
+    expect(handleUniqueConstraintError(unique({ parent: { constraint: 'other_key' } }), res)).toBe(true);
   } finally { console.error = previous; }
-  assert.equal(res.statusCode, 500);
-  assert.equal(res.body.error, U.UNIQUE_CONSTRAINT_FAILED);
-  assert.equal(logged[0], U.UNIQUE_CONSTRAINT_FAILED);
-  assert.equal(handleUniqueConstraintError(new Error('other'), response()), false);
+  expect(res.statusCode).toBe(500);
+  expect(res.body.error).toBe(U.UNIQUE_CONSTRAINT_FAILED);
+  expect(logged[0]).toBe(U.UNIQUE_CONSTRAINT_FAILED);
+  expect(handleUniqueConstraintError(new Error('other'), response())).toBe(false);
 });
 
 test('malformed JSON and domain errors map to their expected statuses only', () => {
@@ -70,21 +69,21 @@ test('malformed JSON and domain errors map to their expected statuses only', () 
   malformed.status = 400;
   malformed.body = '{';
   const bad = response();
-  assert.equal(handleMalformedJsonError(malformed, bad), true);
-  assert.equal(bad.statusCode, 400);
-  assert.deepEqual(bad.body.errors, [{ field: 'body', message: Q.MALFORMED_JSON }]);
+  expect(handleMalformedJsonError(malformed, bad)).toBe(true);
+  expect(bad.statusCode).toBe(400);
+  expect(bad.body.errors).toStrictEqual([{ field: 'body', message: Q.MALFORMED_JSON }]);
   for (const invalid of [new Error('bad'), Object.assign(new SyntaxError('bad'), { status: 500 })]) {
-    assert.equal(handleMalformedJsonError(invalid, response()), false);
+    expect(handleMalformedJsonError(invalid, response())).toBe(false);
   }
   const forbidden = response();
-  assert.equal(handleAuthorizationError(new AuthorizationError('no'), forbidden), true);
-  assert.deepEqual(forbidden.body, { error: 'no' });
-  assert.equal(forbidden.statusCode, 403);
-  assert.equal(handleAuthorizationError(new Error('no'), response()), false);
+  expect(handleAuthorizationError(new AuthorizationError('no'), forbidden)).toBe(true);
+  expect(forbidden.body).toStrictEqual({ error: 'no' });
+  expect(forbidden.statusCode).toBe(403);
+  expect(handleAuthorizationError(new Error('no'), response())).toBe(false);
   const missing = response();
-  assert.equal(handleUserNotFoundError(new UserNotFoundError(), missing), true);
-  assert.equal(missing.statusCode, 404);
-  assert.equal(handleUserNotFoundError(new Error('missing'), response()), false);
+  expect(handleUserNotFoundError(new UserNotFoundError(), missing)).toBe(true);
+  expect(missing.statusCode).toBe(404);
+  expect(handleUserNotFoundError(new Error('missing'), response())).toBe(false);
 });
 
 test('delete foreign key errors map to 409 and unrelated errors continue', () => {
@@ -93,11 +92,11 @@ test('delete foreign key errors map to 409 and unrelated errors continue', () =>
   const next = (error) => { continued = error; };
   const constraint = new ForeignKeyConstraintError({ parent: new Error('fk') });
   handleDeleteUserError(constraint, {}, res, next);
-  assert.equal(res.statusCode, 409);
-  assert.equal(res.body.error, U.HAS_RELATED_RECORDS);
+  expect(res.statusCode).toBe(409);
+  expect(res.body.error).toBe(U.HAS_RELATED_RECORDS);
   const other = new Error('other');
   handleDeleteUserError(other, {}, response(), next);
-  assert.equal(continued, other);
+  expect(continued).toBe(other);
 });
 
 test('central handler routes known errors and shields unexpected error details', () => {
@@ -109,7 +108,7 @@ test('central handler routes known errors and shields unexpected error details',
   for (const [error, expected] of known) {
     const res = response();
     errorHandler(error, {}, res, () => {});
-    assert.equal(res.statusCode, expected);
+    expect(res.statusCode).toBe(expected);
   }
   const previous = console.error;
   let logged;
@@ -118,8 +117,8 @@ test('central handler routes known errors and shields unexpected error details',
     const res = response();
     const unexpected = new Error('private database detail');
     errorHandler(unexpected, {}, res, () => {});
-    assert.equal(logged, unexpected);
-    assert.equal(res.statusCode, 500);
-    assert.deepEqual(res.body, { error: Q.INTERNAL_SERVER_ERROR });
+    expect(logged).toBe(unexpected);
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toStrictEqual({ error: Q.INTERNAL_SERVER_ERROR });
   } finally { console.error = previous; }
 });
