@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from '@jest/globals';
 import express from 'express';
 import { openApiDocument } from '../../src/swagger/index.js';
 import { createUserValidation } from '../../src/modules/users/validators/createUser.validator.js';
@@ -14,14 +13,14 @@ test('request documentation exposes normalization and UTF-8 limits used by the v
   const schemas = openApiDocument.components.schemas;
   for (const name of ['CreateUserRequest', 'UpdateUserRequest']) {
     const { username, email, password } = schemas[name].properties;
-    assert.equal(username['x-trim-before-validation'], true);
-    assert.equal(username['x-maxLengthAfterTrim'], USERNAME_MAX_LENGTH);
-    assert.equal(email['x-trim-before-validation'], true);
-    assert.equal(email['x-email-validator'], 'express-validator isEmail');
-    assert.equal(email['x-maxLengthAfterTrim'], EMAIL_MAX_LENGTH);
-    assert.equal(password['x-maxUtf8Bytes'], PASSWORD_MAX_UTF8_BYTES);
-    assert.equal(new RegExp(password.pattern).test('   '), false);
-    assert.equal(new RegExp(password.pattern).test(' a '), true);
+    expect(username['x-trim-before-validation']).toBe(true);
+    expect(username['x-maxLengthAfterTrim']).toBe(USERNAME_MAX_LENGTH);
+    expect(email['x-trim-before-validation']).toBe(true);
+    expect(email['x-email-validator']).toBe('express-validator isEmail');
+    expect(email['x-maxLengthAfterTrim']).toBe(EMAIL_MAX_LENGTH);
+    expect(password['x-maxUtf8Bytes']).toBe(PASSWORD_MAX_UTF8_BYTES);
+    expect(new RegExp(password.pattern).test('   ')).toBe(false);
+    expect(new RegExp(password.pattern).test(' a ')).toBe(true);
   }
 
   const app = express();
@@ -40,15 +39,15 @@ test('request documentation exposes normalization and UTF-8 limits used by the v
     }
     const valid = { username: '  alice  ', email: '  ALICE@example.com  ', password: 'é'.repeat(36) };
     const created = await send('/create', 'POST', valid);
-    assert.equal(created.status, 200);
-    assert.equal(created.data.username, 'alice');
-    assert.equal(created.data.email, 'ALICE@example.com');
-    assert.equal((await send('/create', 'POST', { ...valid, password: 'é'.repeat(37) })).status, 400);
-    assert.equal((await send('/create', 'POST', { ...valid, password: '   ' })).status, 400);
-    assert.equal((await send('/create', 'POST', { ...valid, username: '  ' + 'a'.repeat(255) + '  ' })).status, 200);
-    assert.equal((await send('/create', 'POST', { ...valid, username: 'a'.repeat(256) })).status, 400);
-    assert.equal((await send('/update/1', 'PATCH', { password: 'é'.repeat(37) })).status, 400);
-    assert.equal((await send('/login', 'POST', { email: '  ALICE@example.com  ', password: '   ' })).status, 200);
+    expect(created.status).toBe(200);
+    expect(created.data.username).toBe('alice');
+    expect(created.data.email).toBe('ALICE@example.com');
+    expect((await send('/create', 'POST', { ...valid, password: 'é'.repeat(37) })).status).toBe(400);
+    expect((await send('/create', 'POST', { ...valid, password: '   ' })).status).toBe(400);
+    expect((await send('/create', 'POST', { ...valid, username: '  ' + 'a'.repeat(255) + '  ' })).status).toBe(200);
+    expect((await send('/create', 'POST', { ...valid, username: 'a'.repeat(256) })).status).toBe(400);
+    expect((await send('/update/1', 'PATCH', { password: 'é'.repeat(37) })).status).toBe(400);
+    expect((await send('/login', 'POST', { email: '  ALICE@example.com  ', password: '   ' })).status).toBe(200);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
