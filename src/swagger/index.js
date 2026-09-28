@@ -24,6 +24,22 @@ const userIdParameter = {
   },
 };
 
+const validationErrorResponse = {
+  content: {
+    'application/json': {
+      schema: { $ref: '#/components/schemas/ValidationErrorResponse' },
+    },
+  },
+};
+
+const errorResponse = {
+  content: {
+    'application/json': {
+      schema: { $ref: '#/components/schemas/ErrorResponse' },
+    },
+  },
+};
+
 export const openApiDocument = {
   openapi: '3.0.3',
 
@@ -64,13 +80,16 @@ export const openApiDocument = {
           },
           400: {
             description: 'Los datos enviados no son válidos.',
+            ...validationErrorResponse,
           },
           401: {
             description:
               'Credenciales inválidas o usuario deshabilitado.',
+            ...errorResponse,
           },
           500: {
             description: 'Error interno del servidor.',
+            ...errorResponse,
           },
         },
       },
@@ -120,13 +139,16 @@ export const openApiDocument = {
           400: {
             description:
               'Los parámetros de paginación no son válidos.',
+            ...validationErrorResponse,
           },
           401: {
             description:
               'Falta el token, es inválido o el usuario está deshabilitado.',
+            ...errorResponse,
           },
           500: {
             description: 'Error interno del servidor.',
+            ...errorResponse,
           },
         },
       },
@@ -160,21 +182,26 @@ export const openApiDocument = {
           },
           400: {
             description: 'Los datos enviados no son válidos.',
+            ...validationErrorResponse,
           },
           401: {
             description:
               'Falta el token, es inválido o el usuario está deshabilitado.',
+            ...errorResponse,
           },
           403: {
             description:
               'El rol del solicitante no permite crear usuarios con el rol indicado.',
+            ...errorResponse,
           },
           409: {
             description:
               'El username o el email ya está registrado.',
+            ...errorResponse,
           },
           500: {
             description: 'Error interno del servidor.',
+            ...errorResponse,
           },
         },
       },
@@ -201,16 +228,20 @@ export const openApiDocument = {
           },
           400: {
             description: 'El ID no es válido.',
+            ...validationErrorResponse,
           },
           401: {
             description:
               'Falta el token, es inválido o el usuario está deshabilitado.',
+            ...errorResponse,
           },
           404: {
             description: 'Usuario no encontrado.',
+            ...errorResponse,
           },
           500: {
             description: 'Error interno del servidor.',
+            ...errorResponse,
           },
         },
       },
@@ -246,24 +277,30 @@ export const openApiDocument = {
           400: {
             description:
               'El ID o los datos enviados no son válidos.',
+            ...validationErrorResponse,
           },
           401: {
             description:
               'Falta el token, es inválido o el usuario está deshabilitado.',
+            ...errorResponse,
           },
           403: {
             description:
               'El solicitante no puede editar al usuario indicado o se intentó deshabilitar la cuenta superadmin.',
+            ...errorResponse,
           },
           404: {
             description: 'Usuario no encontrado.',
+            ...errorResponse,
           },
           409: {
             description:
               'El username o el email ya está registrado.',
+            ...errorResponse,
           },
           500: {
             description: 'Error interno del servidor.',
+            ...errorResponse,
           },
         },
       },
@@ -282,24 +319,30 @@ export const openApiDocument = {
           },
           400: {
             description: 'El ID no es válido.',
+            ...validationErrorResponse,
           },
           401: {
             description:
               'Falta el token, es inválido o el usuario está deshabilitado.',
+            ...errorResponse,
           },
           403: {
             description:
               'El solicitante no puede eliminar al usuario indicado.',
+            ...errorResponse,
           },
           404: {
             description: 'Usuario no encontrado.',
+            ...errorResponse,
           },
           409: {
             description:
               'No se puede eliminar el usuario porque tiene registros relacionados.',
+            ...errorResponse,
           },
           500: {
             description: 'Error interno del servidor.',
+            ...errorResponse,
           },
         },
       },
@@ -337,20 +380,25 @@ export const openApiDocument = {
           400: {
             description:
               'El ID o el rol enviado no son válidos.',
+            ...validationErrorResponse,
           },
           401: {
             description:
               'Falta el token, es inválido o el usuario está deshabilitado.',
+            ...errorResponse,
           },
           403: {
             description:
               'Se requiere superadmin o se intentó cambiar el rol de la cuenta superadmin.',
+            ...errorResponse,
           },
           404: {
             description: 'Usuario no encontrado.',
+            ...errorResponse,
           },
           500: {
             description: 'Error interno del servidor.',
+            ...errorResponse,
           },
         },
       },
@@ -367,6 +415,36 @@ export const openApiDocument = {
     },
 
     schemas: {
+      ValidationErrorResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['errors'],
+        properties: {
+          errors: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['field', 'message'],
+              properties: {
+                field: { type: 'string' },
+                message: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+
+      ErrorResponse: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['error'],
+        properties: {
+          error: { type: 'string' },
+        },
+      },
+
       LoginRequest: {
         type: 'object',
         additionalProperties: false,
@@ -387,6 +465,7 @@ export const openApiDocument = {
 
       LoginResponse: {
         type: 'object',
+        additionalProperties: false,
         required: ['accessToken', 'tokenType', 'expiresIn'],
         properties: {
           accessToken: {
@@ -487,6 +566,7 @@ export const openApiDocument = {
 
       UserResponse: {
         type: 'object',
+        additionalProperties: false,
         required: [
           'id',
           'username',
@@ -532,6 +612,7 @@ export const openApiDocument = {
 
       UserListResponse: {
         type: 'object',
+        additionalProperties: false,
         required: ['users', 'pagination'],
         properties: {
           users: {
@@ -542,6 +623,7 @@ export const openApiDocument = {
           },
           pagination: {
             type: 'object',
+            additionalProperties: false,
             required: [
               'total',
               'page',
