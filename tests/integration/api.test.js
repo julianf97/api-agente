@@ -1,6 +1,5 @@
 import 'dotenv/config';
-import assert from 'node:assert/strict';
-import { after, before, beforeEach, test } from 'node:test';
+import { afterAll, beforeAll, beforeEach, expect, test } from '@jest/globals';
 import bcrypt from 'bcrypt';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
@@ -34,26 +33,26 @@ function documentedRoute(path, method) {
 }
 
 function assertUserResponse(user) {
-  assert.deepEqual(Object.keys(user).sort(), [
+  expect(Object.keys(user).sort()).toStrictEqual([
     'id', 'username', 'email', 'role', 'enabled', 'createdAt', 'updatedAt',
   ].sort());
-  assert.equal(typeof user.id, 'number');
-  assert.equal(typeof user.username, 'string');
-  assert.equal(typeof user.email, 'string');
-  assert.ok(['regular', 'admin', 'superadmin'].includes(user.role));
-  assert.equal(typeof user.enabled, 'boolean');
-  assert.ok(!Number.isNaN(Date.parse(user.createdAt)));
-  assert.ok(!Number.isNaN(Date.parse(user.updatedAt)));
+  expect(typeof user.id).toBe('number');
+  expect(typeof user.username).toBe('string');
+  expect(typeof user.email).toBe('string');
+  expect(['regular', 'admin', 'superadmin'].includes(user.role)).toBeTruthy();
+  expect(typeof user.enabled).toBe('boolean');
+  expect(!Number.isNaN(Date.parse(user.createdAt))).toBeTruthy();
+  expect(!Number.isNaN(Date.parse(user.updatedAt))).toBeTruthy();
 }
 
 function assertSuccessContract(route, status, data) {
   if (status === 204) {
-    assert.equal(data, null, `${route} must not return a body`);
+    expect(data).toBe(null);
   } else if (route === 'POST /auth/login' && status === 200) {
-    assert.deepEqual(Object.keys(data).sort(), ['accessToken', 'expiresIn', 'tokenType']);
+    expect(Object.keys(data).sort()).toStrictEqual(['accessToken', 'expiresIn', 'tokenType']);
   } else if (route === 'GET /users' && status === 200) {
-    assert.deepEqual(Object.keys(data).sort(), ['pagination', 'users']);
-    assert.deepEqual(Object.keys(data.pagination).sort(), ['limit', 'page', 'total', 'totalPages']);
+    expect(Object.keys(data).sort()).toStrictEqual(['pagination', 'users']);
+    expect(Object.keys(data.pagination).sort()).toStrictEqual(['limit', 'page', 'total', 'totalPages']);
     data.users.forEach(assertUserResponse);
   } else if (route && status >= 200 && status < 300) {
     assertUserResponse(data);
@@ -64,28 +63,26 @@ function assertOpenApiResponse(route, status, headers, data) {
   const [method, path] = route.split(' ');
   const operation = openApiDocument.paths[path]?.[method.toLowerCase()];
   const documented = operation?.responses[String(status)];
-  assert.ok(documented, `${route}: HTTP ${status} is not documented in OpenAPI`);
+  expect(documented).toBeTruthy(`${route}: HTTP ${status} is not documented in OpenAPI`);
 
   const media = documented.content?.['application/json'];
   if (!media) {
-    assert.equal(data, null, `${route} HTTP ${status}: unexpected response body`);
+    expect(data).toBe(null);
     return;
   }
-  assert.match(headers.get('content-type') ?? '', /^application\/json(?:;|$)/i,
-    `${route} HTTP ${status}: incorrect Content-Type`);
-  assert.ok(data !== null && typeof data === 'object' && !Array.isArray(data),
-    `${route} HTTP ${status}: expected JSON object`);
+  expect(headers.get('content-type') ?? '').toMatch(/^application\/json(?:;|$)/i);
+  expect(data !== null && typeof data === 'object' && !Array.isArray(data)).toBeTruthy(`${route} HTTP ${status}: expected JSON object`);
 
   const key = `${route} ${status}`;
   if (!responseValidators.has(key)) {
-    assert.ok(media.schema, `${key}: missing response schema`);
+    expect(media.schema).toBeTruthy(`${key}: missing response schema`);
     responseValidators.set(key, ajv.compile({
       $ref: media.schema.$ref,
       components: openApiDocument.components,
     }));
   }
   const validate = responseValidators.get(key);
-  assert.ok(validate(data), `${key}: ${ajv.errorsText(validate.errors)}; body: ${JSON.stringify(data)}`);
+  expect(validate(data)).toBeTruthy(`${key}: ${ajv.errorsText(validate.errors)}; body: ${JSON.stringify(data)}`);
 }
 
 const password = 'StrongPass123!';
@@ -135,10 +132,10 @@ async function login(data) {
   const response = await request('/auth/login', {
     method: 'POST', body: { email: data.email, password: data.password },
   });
-  assert.equal(response.status, 200, JSON.stringify(response.data));
-  assert.equal(response.data.tokenType, 'Bearer');
-  assert.equal(response.data.expiresIn, 3600);
-  assert.ok(response.data.accessToken);
+  expect(response.status).toBe(200);
+  expect(response.data.tokenType).toBe('Bearer');
+  expect(response.data.expiresIn).toBe(3600);
+  expect(response.data.accessToken).toBeTruthy();
   return response.data.accessToken;
 }
 
@@ -148,17 +145,17 @@ async function actor(suffix, role = 'superadmin') {
 }
 
 function assertNoPassword(data) {
-  assert.doesNotMatch(JSON.stringify(data), /password|StrongPass123!/i);
+  expect(JSON.stringify(data)).not.toMatch(/password|StrongPass123!/i);
 }
 
-before(async () => {
+beforeAll(async () => {
   // Dynamic imports are essential: models choose their schema during import.
   ({ sequelize } = await import('../../src/db/index.js'));
   ({ default: User } = await import('../../src/models/user.js'));
   ({ default: Invoice } = await import('../../src/models/invoice.js'));
   await import('../../src/models/index.js');
-  assert.equal(User.getTableName().schema, testSchema);
-  assert.equal(Invoice.getTableName().schema, testSchema);
+  expect(User.getTableName().schema).toBe(testSchema);
+  expect(Invoice.getTableName().schema).toBe(testSchema);
   await sequelize.authenticate();
   await sequelize.sync();
   const [foreignKeys] = await sequelize.query(`
@@ -168,10 +165,7 @@ before(async () => {
     JOIN pg_namespace n ON n.oid = t.relnamespace
     WHERE n.nspname = :schema AND t.relname = 'invoices' AND c.contype = 'f'
   `, { replacements: { schema: testSchema } });
-  assert.ok(
-    foreignKeys.some(({ confdeltype }) => confdeltype === 'r' || confdeltype === 'a'),
-    'invoices.userId must block deleting a user with invoices; existing test-schema constraints may need ON DELETE RESTRICT',
-  );
+  expect(foreignKeys.some(({ confdeltype }) => confdeltype === 'r' || confdeltype === 'a')).toBeTruthy('invoices.userId must block deleting a user with invoices; existing test-schema constraints may need ON DELETE RESTRICT');
   ({ openApiDocument } = await import('../../src/swagger/index.js'));
   const { default: app } = await import('../../src/app.js');
   appServer = app.listen(0);
@@ -188,41 +182,41 @@ beforeEach(async () => {
   await sequelize.query(`TRUNCATE TABLE ${quoted}."invoices", ${quoted}."users" RESTART IDENTITY CASCADE`);
 });
 
-after(async () => {
+afterAll(async () => {
   if (appServer) await new Promise((resolve) => appServer.close(resolve));
   if (sequelize) await sequelize.close();
 });
 
 test('Swagger UI is served and login validation rejects malformed input', async () => {
   const docs = await request('/api-docs/');
-  assert.equal(docs.status, 200);
-  assert.match(docs.data, /swagger-ui/i);
+  expect(docs.status).toBe(200);
+  expect(docs.data).toMatch(/swagger-ui/i);
   const missing = await request('/auth/login', { method: 'POST', body: {} });
-  assert.equal(missing.status, 400);
-  assert.ok(missing.data.errors.some((error) => error.field === 'email'));
+  expect(missing.status).toBe(400);
+  expect(missing.data.errors.some((error) => error.field === 'email')).toBeTruthy();
   const unknown = await request('/auth/login', {
     method: 'POST', body: { email: 'a@example.com', password, extra: true },
   });
-  assert.equal(unknown.status, 400);
+  expect(unknown.status).toBe(400);
   const malformed = await request('/auth/login', { method: 'POST', rawBody: '{' });
-  assert.equal(malformed.status, 400);
+  expect(malformed.status).toBe(400);
 });
 
 test('login verifies password, normalizes email and refuses disabled users', async () => {
   const { user, data } = await seedUser('login');
   const token = await login({ ...data, email: data.email.toUpperCase() });
-  assert.equal((await request('/users', { token })).status, 200);
-  assert.equal((await request('/auth/login', {
+  expect((await request('/users', { token })).status).toBe(200);
+  expect((await request('/auth/login', {
     method: 'POST', body: { email: data.email, password: 'wrong' },
-  })).status, 401);
-  assert.equal((await request('/auth/login', {
+  })).status).toBe(401);
+  expect((await request('/auth/login', {
     method: 'POST', body: { email: 'missing@example.com', password },
-  })).status, 401);
+  })).status).toBe(401);
   await user.update({ enabled: false });
-  assert.equal((await request('/auth/login', {
+  expect((await request('/auth/login', {
     method: 'POST', body: { email: data.email, password },
-  })).status, 401);
-  assert.equal((await request('/users', { token })).status, 401);
+  })).status).toBe(401);
+  expect((await request('/users', { token })).status).toBe(401);
 });
 
 test('every users route requires a valid active bearer token', async () => {
@@ -231,8 +225,8 @@ test('every users route requires a valid active bearer token', async () => {
     ['/users/1', 'PATCH'], ['/users/1/role', 'PATCH'], ['/users/1', 'DELETE'],
   ];
   for (const [path, method] of routes) {
-    assert.equal((await request(path, { method })).status, 401, `${method} ${path}`);
-    assert.equal((await request(path, { method, token: 'invalid' })).status, 401);
+    expect((await request(path, { method })).status).toBe(401);
+    expect((await request(path, { method, token: 'invalid' })).status).toBe(401);
   }
 });
 
@@ -240,24 +234,24 @@ test('superadmin creates a user, persists a bcrypt hash, reads and paginates wit
   const { token } = await actor('owner');
   const data = userData('created');
   const created = await request('/users', { method: 'POST', token, body: data });
-  assert.equal(created.status, 201, JSON.stringify(created.data));
-  assert.equal(created.data.email, data.email);
+  expect(created.status).toBe(201);
+  expect(created.data.email).toBe(data.email);
   assertNoPassword(created.data);
   const row = await User.findByPk(created.data.id);
-  assert.notEqual(row.passwordHash, password);
-  assert.ok(await bcrypt.compare(password, row.passwordHash));
+  expect(row.passwordHash).not.toBe(password);
+  expect(await bcrypt.compare(password, row.passwordHash)).toBeTruthy();
   const found = await request(`/users/${row.id}`, { token });
-  assert.equal(found.status, 200);
+  expect(found.status).toBe(200);
   assertNoPassword(found.data);
   const listed = await request('/users?page=2&limit=1', { token });
-  assert.equal(listed.status, 200);
-  assert.equal(listed.data.pagination.total, 2);
-  assert.equal(listed.data.pagination.page, 2);
-  assert.equal(listed.data.users.length, 1);
+  expect(listed.status).toBe(200);
+  expect(listed.data.pagination.total).toBe(2);
+  expect(listed.data.pagination.page).toBe(2);
+  expect(listed.data.users.length).toBe(1);
   assertNoPassword(listed.data);
-  assert.equal((await request('/users?page=0', { token })).status, 400);
-  assert.equal((await request('/users/0', { token })).status, 400);
-  assert.equal((await request('/users/9999', { token })).status, 404);
+  expect((await request('/users?page=0', { token })).status).toBe(400);
+  expect((await request('/users/0', { token })).status).toBe(400);
+  expect((await request('/users/9999', { token })).status).toBe(404);
 });
 
 test('creation validates fields, rejects duplicates and enforces role hierarchy', async () => {
@@ -265,26 +259,26 @@ test('creation validates fields, rejects duplicates and enforces role hierarchy'
   const { token: adminToken } = await actor('admin', 'admin');
   const { token: regularToken } = await actor('reader', 'regular');
   const data = userData('new');
-  assert.equal((await request('/users', { method: 'POST', token: regularToken, body: data })).status, 403);
-  assert.equal((await request('/users', {
+  expect((await request('/users', { method: 'POST', token: regularToken, body: data })).status).toBe(403);
+  expect((await request('/users', {
     method: 'POST', token: adminToken, body: { ...data, role: 'admin' },
-  })).status, 403);
-  assert.equal((await request('/users', {
+  })).status).toBe(403);
+  expect((await request('/users', {
     method: 'POST', token: superToken, body: { ...data, role: 'superadmin' },
-  })).status, 400);
-  assert.equal((await request('/users', {
+  })).status).toBe(400);
+  expect((await request('/users', {
     method: 'POST', token: adminToken, body: { ...data, extra: true },
-  })).status, 400);
-  assert.equal((await request('/users', {
+  })).status).toBe(400);
+  expect((await request('/users', {
     method: 'POST', token: adminToken, body: { ...data, password: ' '.repeat(4) },
-  })).status, 400);
-  assert.equal((await request('/users', { method: 'POST', token: adminToken, body: data })).status, 201);
-  assert.equal((await request('/users', {
+  })).status).toBe(400);
+  expect((await request('/users', { method: 'POST', token: adminToken, body: data })).status).toBe(201);
+  expect((await request('/users', {
     method: 'POST', token: adminToken, body: { ...data, email: 'different@example.com' },
-  })).status, 409);
-  assert.equal((await request('/users', {
+  })).status).toBe(409);
+  expect((await request('/users', {
     method: 'POST', token: adminToken, body: { ...data, username: 'different' },
-  })).status, 409);
+  })).status).toBe(409);
 });
 
 test('update changes fields and password; role changes use the dedicated superadmin route', async () => {
@@ -294,68 +288,68 @@ test('update changes fields and password; role changes use the dedicated superad
     method: 'PATCH', token,
     body: { username: 'renamed', email: 'RENAMED@example.com', password: 'NewPassword123!' },
   });
-  assert.equal(updated.status, 200, JSON.stringify(updated.data));
-  assert.equal(updated.data.email, 'renamed@example.com');
+  expect(updated.status).toBe(200);
+  expect(updated.data.email).toBe('renamed@example.com');
   assertNoPassword(updated.data);
   await user.reload();
-  assert.ok(await bcrypt.compare('NewPassword123!', user.passwordHash));
-  assert.equal((await request('/auth/login', {
+  expect(await bcrypt.compare('NewPassword123!', user.passwordHash)).toBeTruthy();
+  expect((await request('/auth/login', {
     method: 'POST', body: { email: data.email, password },
-  })).status, 401);
-  assert.equal((await request('/users/99999', {
+  })).status).toBe(401);
+  expect((await request('/users/99999', {
     method: 'PATCH', token, body: { username: 'absent' },
-  })).status, 404);
-  assert.equal((await request(`/users/${user.id}`, {
+  })).status).toBe(404);
+  expect((await request(`/users/${user.id}`, {
     method: 'PATCH', token, body: { role: 'admin' },
-  })).status, 400);
-  assert.equal((await request(`/users/${user.id}`, {
+  })).status).toBe(400);
+  expect((await request(`/users/${user.id}`, {
     method: 'PATCH', token, body: {},
-  })).status, 400);
+  })).status).toBe(400);
   const promoted = await request(`/users/${user.id}/role`, {
     method: 'PATCH', token, body: { role: 'admin' },
   });
-  assert.equal(promoted.status, 200, JSON.stringify(promoted.data));
-  assert.equal(promoted.data.role, 'admin');
-  assert.equal((await request(`/users/${user.id}/role`, {
+  expect(promoted.status).toBe(200);
+  expect(promoted.data.role).toBe('admin');
+  expect((await request(`/users/${user.id}/role`, {
     method: 'PATCH', token, body: { role: 'superadmin' },
-  })).status, 400);
+  })).status).toBe(400);
 });
 
 test('regular users cannot mutate; admin cannot edit admin; superadmin cannot be disabled or deleted', async () => {
   const { user: root, token: superToken } = await actor('root');
   const { user: admin, token: adminToken } = await actor('admin', 'admin');
   const { user: regular, token: regularToken } = await actor('regular', 'regular');
-  assert.equal((await request(`/users/${regular.id}`, {
+  expect((await request(`/users/${regular.id}`, {
     method: 'PATCH', token: regularToken, body: { username: 'bad' },
-  })).status, 403);
-  assert.equal((await request(`/users/${admin.id}`, {
+  })).status).toBe(403);
+  expect((await request(`/users/${admin.id}`, {
     method: 'PATCH', token: adminToken, body: { username: 'bad' },
-  })).status, 403);
-  assert.equal((await request(`/users/${regular.id}/role`, {
+  })).status).toBe(403);
+  expect((await request(`/users/${regular.id}/role`, {
     method: 'PATCH', token: adminToken, body: { role: 'admin' },
-  })).status, 403);
-  assert.equal((await request(`/users/${root.id}`, {
+  })).status).toBe(403);
+  expect((await request(`/users/${root.id}`, {
     method: 'PATCH', token: superToken, body: { enabled: false },
-  })).status, 403);
-  assert.equal((await request(`/users/${root.id}`, {
+  })).status).toBe(403);
+  expect((await request(`/users/${root.id}`, {
     method: 'DELETE', token: superToken,
-  })).status, 403);
+  })).status).toBe(403);
 });
 
 test('delete removes a user and refuses one with related invoices', async () => {
   const { token } = await actor('root');
   const { user } = await seedUser('removable');
-  assert.equal((await request(`/users/${user.id}`, { method: 'DELETE', token })).status, 204);
-  assert.equal(await User.findByPk(user.id), null);
-  assert.equal((await request(`/users/${user.id}`, { method: 'DELETE', token })).status, 404);
+  expect((await request(`/users/${user.id}`, { method: 'DELETE', token })).status).toBe(204);
+  expect(await User.findByPk(user.id)).toBe(null);
+  expect((await request(`/users/${user.id}`, { method: 'DELETE', token })).status).toBe(404);
   const { user: billed } = await seedUser('billed');
   await Invoice.create({
     number: 'TEST-001', userId: billed.id, customerName: 'Empresa Prueba SA',
     amount: '125.00', status: 'issued',
   });
   const blocked = await request(`/users/${billed.id}`, { method: 'DELETE', token });
-  assert.equal(blocked.status, 409, JSON.stringify(blocked.data));
-  assert.ok(await User.findByPk(billed.id));
+  expect(blocked.status).toBe(409);
+  expect(await User.findByPk(billed.id)).toBeTruthy();
 });
 
 test('login validates each field and rejects unexpected input without leaking passwords', async () => {
@@ -371,9 +365,9 @@ test('login validates each field and rejects unexpected input without leaking pa
   ];
   for (const [body, field] of cases) {
     const response = await request('/auth/login', { method: 'POST', body });
-    assert.equal(response.status, 400, JSON.stringify(body));
-    assert.ok(response.data.errors.some((error) => error.field === field), JSON.stringify(response.data));
-    assert.doesNotMatch(JSON.stringify(response.data), /StrongPass123!/);
+    expect(response.status).toBe(400);
+    expect(response.data.errors.some((error) => error.field === field)).toBeTruthy(JSON.stringify(response.data));
+    expect(JSON.stringify(response.data)).not.toMatch(/StrongPass123!/);
   }
 });
 
@@ -388,30 +382,30 @@ test('tokens reject malformed, expired, wrong signature and deleted account', as
     { token: jwt.sign({ role: 'superadmin' }, process.env.JWT_SECRET, { subject: 'invalid' }) },
   ];
   for (const options of cases) {
-    assert.equal((await request('/users', options)).status, 401);
+    expect((await request('/users', options)).status).toBe(401);
   }
   await user.destroy();
-  assert.equal((await request('/users', { token })).status, 401);
+  expect((await request('/users', { token })).status).toBe(401);
 });
 
 test('list includes disabled users, supports default and boundary pagination, rejects invalid query', async () => {
   const { token } = await actor('reader', 'regular');
   const { user: disabled } = await seedUser('disabled', 'regular', false);
   const defaults = await request('/users', { token });
-  assert.equal(defaults.status, 200);
-  assert.equal(defaults.data.pagination.page, 1);
-  assert.equal(defaults.data.pagination.limit, 20);
-  assert.ok(defaults.data.users.some((user) => user.id === disabled.id && user.enabled === false));
+  expect(defaults.status).toBe(200);
+  expect(defaults.data.pagination.page).toBe(1);
+  expect(defaults.data.pagination.limit).toBe(20);
+  expect(defaults.data.users.some((user) => user.id === disabled.id && user.enabled === false)).toBeTruthy();
   for (const query of ['page=1&limit=100', 'page=100&limit=1']) {
     const response = await request(`/users?${query}`, { token });
-    assert.equal(response.status, 200);
+    expect(response.status).toBe(200);
     assertNoPassword(response.data);
   }
   const empty = await request('/users?page=100&limit=1', { token });
-  assert.deepEqual(empty.data.users, []);
+  expect(empty.data.users).toStrictEqual([]);
   for (const query of ['page=0', 'page=-1', 'page=foo', 'limit=0', 'limit=101', 'limit=foo', 'extra=1']) {
     const response = await request(`/users?${query}`, { token });
-    assert.equal(response.status, 400, query);
+    expect(response.status).toBe(400);
   }
 });
 
@@ -422,14 +416,14 @@ test('read by ID allows every role and handles missing, malformed and out-of-ran
   const { user: target } = await seedUser('target', 'regular', false);
   for (const token of [regular, admin, superadmin]) {
     const response = await request(`/users/${target.id}`, { token });
-    assert.equal(response.status, 200);
-    assert.equal(response.data.enabled, false);
+    expect(response.status).toBe(200);
+    expect(response.data.enabled).toBe(false);
     assertNoPassword(response.data);
   }
   for (const id of ['0', '-1', 'abc', '2147483648']) {
-    assert.equal((await request(`/users/${id}`, { token: regular })).status, 400, id);
+    expect((await request(`/users/${id}`, { token: regular })).status).toBe(400);
   }
-  assert.equal((await request('/users/999999', { token: regular })).status, 404);
+  expect((await request('/users/999999', { token: regular })).status).toBe(404);
 });
 
 test('create accepts default role and allowed roles, trims username and normalizes email', async () => {
@@ -439,17 +433,17 @@ test('create accepts default role and allowed roles, trims username and normaliz
     method: 'POST', token: admin,
     body: { username: '  trimmed  ', email: 'UPPER@example.com', password },
   });
-  assert.equal(first.status, 201, JSON.stringify(first.data));
-  assert.equal(first.data.username, 'trimmed');
-  assert.equal(first.data.email, 'upper@example.com');
-  assert.equal(first.data.role, 'regular');
-  assert.equal(first.data.enabled, true);
+  expect(first.status).toBe(201);
+  expect(first.data.username).toBe('trimmed');
+  expect(first.data.email).toBe('upper@example.com');
+  expect(first.data.role).toBe('regular');
+  expect(first.data.enabled).toBe(true);
   const second = await request('/users', {
     method: 'POST', token: superadmin,
     body: userData('new_admin', 'admin'),
   });
-  assert.equal(second.status, 201);
-  assert.equal(second.data.role, 'admin');
+  expect(second.status).toBe(201);
+  expect(second.data.role).toBe('admin');
   assertNoPassword(second.data);
 });
 
@@ -475,10 +469,10 @@ test('create rejects every required-field, type, length, role and unknown-field 
   ];
   for (const [body, field] of invalid) {
     const result = await request('/users', { method: 'POST', token, body });
-    assert.equal(result.status, 400, `${field}: ${JSON.stringify(result.data)}`);
-    assert.ok(result.data.errors.some((error) => error.field === field), JSON.stringify(result.data));
+    expect(result.status).toBe(400);
+    expect(result.data.errors.some((error) => error.field === field)).toBeTruthy(JSON.stringify(result.data));
   }
-  assert.equal(await User.count(), 1);
+  expect(await User.count()).toBe(1);
 });
 
 test('update validates ID, body fields and conflicts without modifying the target', async () => {
@@ -486,7 +480,7 @@ test('update validates ID, body fields and conflicts without modifying the targe
   const { user } = await seedUser('target');
   const { user: existing } = await seedUser('existing');
   for (const id of ['0', '-1', 'abc', '2147483648']) {
-    assert.equal((await request(`/users/${id}`, { method: 'PATCH', token, body: { enabled: false } })).status, 400, id);
+    expect((await request(`/users/${id}`, { method: 'PATCH', token, body: { enabled: false } })).status).toBe(400);
   }
   const invalid = [
     [{}, 'body'],
@@ -505,16 +499,16 @@ test('update validates ID, body fields and conflicts without modifying the targe
   ];
   for (const [body] of invalid) {
     const result = await request(`/users/${user.id}`, { method: 'PATCH', token, body });
-    assert.equal(result.status, 400, JSON.stringify(body));
+    expect(result.status).toBe(400);
   }
   for (const body of [{ username: existing.username }, { email: existing.email }]) {
-    assert.equal((await request(`/users/${user.id}`, { method: 'PATCH', token, body })).status, 409);
+    expect((await request(`/users/${user.id}`, { method: 'PATCH', token, body })).status).toBe(409);
   }
   await user.reload();
-  assert.equal(user.username, 'test_target');
-  assert.equal(user.email, 'test_target@example.com');
-  assert.equal(user.enabled, true);
-  assert.equal((await request('/users/99999', { method: 'PATCH', token, body: { enabled: false } })).status, 404);
+  expect(user.username).toBe('test_target');
+  expect(user.email).toBe('test_target@example.com');
+  expect(user.enabled).toBe(true);
+  expect((await request('/users/99999', { method: 'PATCH', token, body: { enabled: false } })).status).toBe(404);
 });
 
 test('update permission matrix and enabled toggle', async () => {
@@ -522,18 +516,18 @@ test('update permission matrix and enabled toggle', async () => {
   const { user: adminUser, token: admin } = await actor('admin', 'admin');
   const { user: regularUser, token: regular } = await actor('regular', 'regular');
   const allowed = await request(`/users/${regularUser.id}`, { method: 'PATCH', token: admin, body: { enabled: false } });
-  assert.equal(allowed.status, 200);
-  assert.equal(allowed.data.enabled, false);
-  assert.equal((await request('/auth/login', {
+  expect(allowed.status).toBe(200);
+  expect(allowed.data.enabled).toBe(false);
+  expect((await request('/auth/login', {
     method: 'POST', body: { email: 'test_regular@example.com', password },
-  })).status, 401);
-  assert.equal((await request(`/users/${regularUser.id}`, { method: 'PATCH', token: admin, body: { enabled: true } })).status, 200);
-  assert.equal((await request(`/users/${adminUser.id}`, { method: 'PATCH', token: superadmin, body: { username: 'edited_admin' } })).status, 200);
-  assert.equal((await request(`/users/${root.id}`, { method: 'PATCH', token: superadmin, body: { username: 'edited_root' } })).status, 200);
-  assert.equal((await request(`/users/${adminUser.id}`, { method: 'PATCH', token: admin, body: { username: 'forbidden' } })).status, 403);
-  assert.equal((await request(`/users/${root.id}`, { method: 'PATCH', token: admin, body: { username: 'forbidden' } })).status, 403);
-  assert.equal((await request(`/users/${regularUser.id}`, { method: 'PATCH', token: regular, body: { username: 'forbidden' } })).status, 403);
-  assert.equal((await request(`/users/${root.id}`, { method: 'PATCH', token: superadmin, body: { enabled: false } })).status, 403);
+  })).status).toBe(401);
+  expect((await request(`/users/${regularUser.id}`, { method: 'PATCH', token: admin, body: { enabled: true } })).status).toBe(200);
+  expect((await request(`/users/${adminUser.id}`, { method: 'PATCH', token: superadmin, body: { username: 'edited_admin' } })).status).toBe(200);
+  expect((await request(`/users/${root.id}`, { method: 'PATCH', token: superadmin, body: { username: 'edited_root' } })).status).toBe(200);
+  expect((await request(`/users/${adminUser.id}`, { method: 'PATCH', token: admin, body: { username: 'forbidden' } })).status).toBe(403);
+  expect((await request(`/users/${root.id}`, { method: 'PATCH', token: admin, body: { username: 'forbidden' } })).status).toBe(403);
+  expect((await request(`/users/${regularUser.id}`, { method: 'PATCH', token: regular, body: { username: 'forbidden' } })).status).toBe(403);
+  expect((await request(`/users/${root.id}`, { method: 'PATCH', token: superadmin, body: { enabled: false } })).status).toBe(403);
 });
 
 test('role endpoint validates ID and body and covers promotion, demotion and permissions', async () => {
@@ -541,21 +535,21 @@ test('role endpoint validates ID and body and covers promotion, demotion and per
   const { user: adminUser, token: admin } = await actor('admin', 'admin');
   const { user: regularUser, token: regular } = await actor('regular', 'regular');
   for (const id of ['0', '-1', 'abc', '2147483648']) {
-    assert.equal((await request(`/users/${id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status, 400, id);
+    expect((await request(`/users/${id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status).toBe(400);
   }
   for (const body of [{}, { role: 'superadmin' }, { role: 42 }, { role: 'admin', extra: true }]) {
-    assert.equal((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: superadmin, body })).status, 400, JSON.stringify(body));
+    expect((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: superadmin, body })).status).toBe(400);
   }
-  assert.equal((await request('/users/99999/role', { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status, 404);
-  assert.equal((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: admin, body: { role: 'admin' } })).status, 403);
-  assert.equal((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: regular, body: { role: 'admin' } })).status, 403);
-  assert.equal((await request(`/users/${root.id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status, 403);
+  expect((await request('/users/99999/role', { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status).toBe(404);
+  expect((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: admin, body: { role: 'admin' } })).status).toBe(403);
+  expect((await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: regular, body: { role: 'admin' } })).status).toBe(403);
+  expect((await request(`/users/${root.id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'admin' } })).status).toBe(403);
   const promoted = await request(`/users/${regularUser.id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'admin' } });
-  assert.equal(promoted.status, 200);
-  assert.equal(promoted.data.role, 'admin');
+  expect(promoted.status).toBe(200);
+  expect(promoted.data.role).toBe('admin');
   const demoted = await request(`/users/${adminUser.id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'regular' } });
-  assert.equal(demoted.status, 200);
-  assert.equal(demoted.data.role, 'regular');
+  expect(demoted.status).toBe(200);
+  expect(demoted.data.role).toBe('regular');
 });
 
 test('delete validates IDs and covers admin/superadmin permission matrix', async () => {
@@ -563,14 +557,14 @@ test('delete validates IDs and covers admin/superadmin permission matrix', async
   const { user: adminUser, token: admin } = await actor('admin', 'admin');
   const { user: regularUser, token: regular } = await actor('regular', 'regular');
   for (const id of ['0', '-1', 'abc', '2147483648']) {
-    assert.equal((await request(`/users/${id}`, { method: 'DELETE', token: superadmin })).status, 400, id);
+    expect((await request(`/users/${id}`, { method: 'DELETE', token: superadmin })).status).toBe(400);
   }
-  assert.equal((await request('/users/99999', { method: 'DELETE', token: superadmin })).status, 404);
-  assert.equal((await request(`/users/${regularUser.id}`, { method: 'DELETE', token: regular })).status, 403);
-  assert.equal((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: admin })).status, 403);
-  assert.equal((await request(`/users/${root.id}`, { method: 'DELETE', token: superadmin })).status, 403);
-  assert.equal((await request(`/users/${regularUser.id}`, { method: 'DELETE', token: admin })).status, 204);
-  assert.equal((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: superadmin })).status, 204);
+  expect((await request('/users/99999', { method: 'DELETE', token: superadmin })).status).toBe(404);
+  expect((await request(`/users/${regularUser.id}`, { method: 'DELETE', token: regular })).status).toBe(403);
+  expect((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: admin })).status).toBe(403);
+  expect((await request(`/users/${root.id}`, { method: 'DELETE', token: superadmin })).status).toBe(403);
+  expect((await request(`/users/${regularUser.id}`, { method: 'DELETE', token: admin })).status).toBe(204);
+  expect((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: superadmin })).status).toBe(204);
 });
 
 test('unexpected persistence failures return documented 500 on every endpoint', async () => {
@@ -582,8 +576,8 @@ test('unexpected persistence failures return documented 500 on every endpoint', 
       model[method] = async () => { throw new Error('Simulated database failure'); };
       try {
         const result = await request(path, options);
-        assert.equal(result.status, 500, `${options?.method ?? 'GET'} ${path}: ${JSON.stringify(result.data)}`);
-        assert.deepEqual(result.data, { error: 'Error interno del servidor.' });
+        expect(result.status).toBe(500);
+        expect(result.data).toStrictEqual({ error: 'Error interno del servidor.' });
       } finally {
         model[method] = original;
       }
@@ -606,8 +600,8 @@ test('unexpected persistence failures return documented 500 on every endpoint', 
       ];
       for (const [path, options] of cases) {
         const result = await request(path, options);
-        assert.equal(result.status, 500, `${options.method ?? 'GET'} ${path}`);
-        assert.deepEqual(result.data, { error: 'Error interno del servidor.' });
+        expect(result.status).toBe(500);
+        expect(result.data).toStrictEqual({ error: 'Error interno del servidor.' });
       }
     } finally {
       User.findByPk = originalFind;
@@ -628,19 +622,19 @@ test('every write route handles malformed JSON, unknown properties and invalid c
   ];
   for (const [path, validBody] of routes) {
     const malformed = await request(path, { method: path === '/users' ? 'POST' : 'PATCH', token, rawBody: '{' });
-    assert.equal(malformed.status, 400, path);
-    assert.ok(malformed.data.errors.some((error) => error.field === 'body'));
+    expect(malformed.status).toBe(400);
+    expect(malformed.data.errors.some((error) => error.field === 'body')).toBeTruthy();
     const unknown = await request(path, {
       method: path === '/users' ? 'POST' : 'PATCH', token,
       body: { ...validBody, unexpected: 'ignored?' },
     });
-    assert.equal(unknown.status, 400, path);
-    assert.ok(unknown.data.errors.some((error) => error.field === 'unexpected'));
+    expect(unknown.status).toBe(400);
+    expect(unknown.data.errors.some((error) => error.field === 'unexpected')).toBeTruthy();
     const wrongType = await request(path, {
       method: path === '/users' ? 'POST' : 'PATCH', token,
       rawBody: JSON.stringify(validBody), headers: { 'Content-Type': 'text/plain' },
     });
-    assert.equal(wrongType.status, 400, path);
+    expect(wrongType.status).toBe(400);
   }
 });
 
@@ -652,18 +646,18 @@ test('user creation and update exercise accepted boundaries and case-insensitive
     method: 'POST', token,
     body: { username: maxUsername, email: 'boundary@example.com', password: maxPassword },
   });
-  assert.equal(created.status, 201, JSON.stringify(created.data));
-  assert.equal(created.data.username.length, 255);
-  assert.ok(await bcrypt.compare(maxPassword, (await User.findByPk(created.data.id)).passwordHash));
+  expect(created.status).toBe(201);
+  expect(created.data.username.length).toBe(255);
+  expect(await bcrypt.compare(maxPassword, (await User.findByPk(created.data.id)).passwordHash)).toBeTruthy();
   const sameEmail = await request('/users', {
     method: 'POST', token, body: { ...userData('duplicate'), email: 'BOUNDARY@example.com' },
   });
-  assert.equal(sameEmail.status, 409);
+  expect(sameEmail.status).toBe(409);
   const updated = await request(`/users/${created.data.id}`, {
     method: 'PATCH', token, body: { password: maxPassword, username: 'u'.repeat(255) },
   });
-  assert.equal(updated.status, 200);
-  assert.equal(updated.data.username.length, 255);
+  expect(updated.status).toBe(200);
+  expect(updated.data.username.length).toBe(255);
 });
 
 test('mutating routes enforce every actor-target role combination', async () => {
@@ -692,9 +686,9 @@ test('mutating routes enforce every actor-target role combination', async () => 
   ];
   for (const [path, options] of attempts) {
     const response = await request(path, options);
-    assert.equal(response.status, 403, `${options.method} ${path}: ${JSON.stringify(response.data)}`);
+    expect(response.status).toBe(403);
   }
-  assert.equal(await User.count(), 4);
+  expect(await User.count()).toBe(4);
 });
 
 test('a disabled actor gets 401 for every protected endpoint, including writes', async () => {
@@ -710,9 +704,9 @@ test('a disabled actor gets 401 for every protected endpoint, including writes',
     [`/users/${target.id}`, { method: 'DELETE', token }],
   ];
   for (const [path, options] of cases) {
-    assert.equal((await request(path, options)).status, 401, `${options.method ?? 'GET'} ${path}`);
+    expect((await request(path, options)).status).toBe(401);
   }
-  assert.ok(await User.findByPk(target.id));
+  expect(await User.findByPk(target.id)).toBeTruthy();
 });
 
 test('every documented HTTP response has an exercised integration scenario', () => {
@@ -721,7 +715,7 @@ test('every documented HTTP response has an exercised integration scenario', () 
       const route = `${method.toUpperCase()} ${path}`;
       const observed = observedResponses.get(route) ?? new Set();
       for (const status of Object.keys(operation.responses)) {
-        assert.ok(observed.has(Number(status)), `${route}: missing scenario for documented HTTP ${status}`);
+        expect(observed.has(Number(status))).toBeTruthy(`${route}: missing scenario for documented HTTP ${status}`);
       }
     }
   }
@@ -738,8 +732,8 @@ test('authentication database failure reaches the central 500 handler without le
   };
   try {
     const response = await request('/users', { token });
-    assert.equal(response.status, 500);
-    assert.deepEqual(response.data, { error: 'Error interno del servidor.' });
+    expect(response.status).toBe(500);
+    expect(response.data).toStrictEqual({ error: 'Error interno del servidor.' });
   } finally {
     User.findByPk = originalFind;
     console.error = originalError;
@@ -754,18 +748,18 @@ test('authorization uses the current database role even when a valid token has a
   const forgedRoleToken = jwt.sign({ role: 'superadmin' }, process.env.JWT_SECRET, {
     subject: String(adminUser.id), expiresIn: '1h', algorithm: 'HS256',
   });
-  assert.equal((await request(`/users/${target.id}/role`, {
+  expect((await request(`/users/${target.id}/role`, {
     method: 'PATCH', token: forgedRoleToken, body: { role: 'admin' },
-  })).status, 403);
+  })).status).toBe(403);
 
   await adminUser.update({ role: 'regular' });
-  assert.equal((await request('/users', { method: 'POST', token: oldAdminToken, body: userData('denied') })).status, 403);
-  assert.equal((await request(`/users/${target.id}`, {
+  expect((await request('/users', { method: 'POST', token: oldAdminToken, body: userData('denied') })).status).toBe(403);
+  expect((await request(`/users/${target.id}`, {
     method: 'PATCH', token: oldAdminToken, body: { username: 'denied' },
-  })).status, 403);
+  })).status).toBe(403);
   await target.reload();
-  assert.equal(target.username, 'test_target');
-  assert.equal(await User.count(), 2);
+  expect(target.username).toBe('test_target');
+  expect(await User.count()).toBe(2);
 });
 
 test('pagination preserves ordering and totals across full, partial and empty pages', async () => {
@@ -775,11 +769,11 @@ test('pagination preserves ordering and totals across full, partial and empty pa
   const pages = [];
   for (const page of [1, 2, 3, 4]) {
     const result = await request(`/users?page=${page}&limit=1`, { token });
-    assert.equal(result.status, 200);
-    assert.deepEqual(result.data.pagination, { total: 3, page, limit: 1, totalPages: 3 });
+    expect(result.status).toBe(200);
+    expect(result.data.pagination).toStrictEqual({ total: 3, page, limit: 1, totalPages: 3 });
     pages.push(result.data.users.map((user) => user.id));
   }
-  assert.deepEqual(pages, [[1], [first.user.id], [second.user.id], []]);
+  expect(pages).toStrictEqual([[1], [first.user.id], [second.user.id], []]);
 });
 
 test('failed writes leave both the target and its related records unchanged', async () => {
@@ -792,16 +786,16 @@ test('failed writes leave both the target and its related records unchanged', as
   const forbidden = await request(`/users/${billed.id}/role`, {
     method: 'PATCH', token: adminToken, body: { role: 'admin' },
   });
-  assert.equal(forbidden.status, 403);
+  expect(forbidden.status).toBe(403);
   const invalid = await request(`/users/${billed.id}`, {
     method: 'PATCH', token: adminToken, body: { username: 'renamed', enabled: 'false' },
   });
-  assert.equal(invalid.status, 400);
+  expect(invalid.status).toBe(400);
   const related = await request(`/users/${billed.id}`, { method: 'DELETE', token: adminToken });
-  assert.equal(related.status, 409);
+  expect(related.status).toBe(409);
   await billed.reload();
-  assert.equal(billed.username, 'test_billed');
-  assert.equal(billed.role, 'regular');
-  assert.equal(billed.enabled, true);
-  assert.ok(await Invoice.findByPk(invoice.id));
+  expect(billed.username).toBe('test_billed');
+  expect(billed.role).toBe('regular');
+  expect(billed.enabled).toBe(true);
+  expect(await Invoice.findByPk(invoice.id)).toBeTruthy();
 });
