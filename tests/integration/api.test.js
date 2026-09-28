@@ -28,6 +28,33 @@ function documentedRoute(path, method) {
   return null;
 }
 
+function assertUserResponse(user) {
+  assert.deepEqual(Object.keys(user).sort(), [
+    'id', 'username', 'email', 'role', 'enabled', 'createdAt', 'updatedAt',
+  ].sort());
+  assert.equal(typeof user.id, 'number');
+  assert.equal(typeof user.username, 'string');
+  assert.equal(typeof user.email, 'string');
+  assert.ok(['regular', 'admin', 'superadmin'].includes(user.role));
+  assert.equal(typeof user.enabled, 'boolean');
+  assert.ok(!Number.isNaN(Date.parse(user.createdAt)));
+  assert.ok(!Number.isNaN(Date.parse(user.updatedAt)));
+}
+
+function assertSuccessContract(route, status, data) {
+  if (status === 204) {
+    assert.equal(data, null, `${route} must not return a body`);
+  } else if (route === 'POST /auth/login' && status === 200) {
+    assert.deepEqual(Object.keys(data).sort(), ['accessToken', 'expiresIn', 'tokenType']);
+  } else if (route === 'GET /users' && status === 200) {
+    assert.deepEqual(Object.keys(data).sort(), ['pagination', 'users']);
+    assert.deepEqual(Object.keys(data.pagination).sort(), ['limit', 'page', 'total', 'totalPages']);
+    data.users.forEach(assertUserResponse);
+  } else if (route && status >= 200 && status < 300) {
+    assertUserResponse(data);
+  }
+}
+
 const password = 'StrongPass123!';
 const userData = (suffix, role = 'regular') => ({
   username: `test_${suffix}`,
@@ -53,6 +80,7 @@ async function request(path, { method = 'GET', token, body, rawBody, headers = {
   if (route) {
     if (!observedResponses.has(route)) observedResponses.set(route, new Set());
     observedResponses.get(route).add(response.status);
+    assertSuccessContract(route, response.status, data);
   }
   return { status: response.status, data, headers: response.headers };
 }
@@ -507,8 +535,8 @@ test('delete validates IDs and covers admin/superadmin permission matrix', async
   assert.equal((await request(`/users/${regularUser.id}`, { method: 'DELETE', token: regular })).status, 403);
   assert.equal((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: admin })).status, 403);
   assert.equal((await request(`/users/${root.id}`, { method: 'DELETE', token: superadmin })).status, 403);
-  assert.equal((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: superadmin })).status, 204);
   assert.equal((await request(`/users/${regularUser.id}`, { method: 'DELETE', token: admin })).status, 204);
+  assert.equal((await request(`/users/${adminUser.id}`, { method: 'DELETE', token: superadmin })).status, 204);
 });
 
 test('unexpected persistence failures return documented 500 on every endpoint', async () => {
@@ -553,6 +581,104 @@ test('unexpected persistence failures return documented 500 on every endpoint', 
   } finally {
     console.error = originalError;
   }
+});
+
+
+
+test('every write route handles malformed JSON, unknown properties and invalid content types', async () => {
+  const { user, token } = await actor('root');
+  const routes = [
+    ['/users', userData('input')],
+    [`/users/${user.id}`, { username: 'changed' }],
+    [`/users/${user.id}/role`, { role: 'admin' }],
+  ];
+  for (const [path, validBody] of routes) {
+    const malformed = await request(path, { method: path === '/users' ? 'POST' : 'PATCH', token, rawBody: '{' });
+    assert.equal(malformed.status, 400, path);
+    assert.ok(malformed.data.errors.some((error) => error.field === 'body'));
+    const unknown = await request(path, {
+      method: path === '/users' ? 'POST' : 'PATCH', token,
+      body: { ...validBody, unexpected: 'ignored?' },
+    });
+    assert.equal(unknown.status, 400, path);
+    assert.ok(unknown.data.errors.some((error) => error.field === 'unexpected'));
+    const wrongType = await request(path, {
+      method: path === '/users' ? 'POST' : 'PATCH', token,
+      rawBody: JSON.stringify(validBody), headers: { 'Content-Type': 'text/plain' },
+    });
+    assert.equal(wrongType.status, 400, path);
+  }
+});
+
+test('user creation and update exercise accepted boundaries and case-insensitive email uniqueness', async () => {
+  const { token } = await actor('root');
+  const maxPassword = 'a'.repeat(72);
+  const maxUsername = 'u'.repeat(255);
+  const created = await request('/users', {
+    method: 'POST', token,
+    body: { username: maxUsername, email: 'boundary@example.com', password: maxPassword },
+  });
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  assert.equal(created.data.username.length, 255);
+  assert.ok(await bcrypt.compare(maxPassword, (await User.findByPk(created.data.id)).passwordHash));
+  const sameEmail = await request('/users', {
+    method: 'POST', token, body: { ...userData('duplicate'), email: 'BOUNDARY@example.com' },
+  });
+  assert.equal(sameEmail.status, 409);
+  const updated = await request(`/users/${created.data.id}`, {
+    method: 'PATCH', token, body: { password: maxPassword, username: 'u'.repeat(255) },
+  });
+  assert.equal(updated.status, 200);
+  assert.equal(updated.data.username.length, 255);
+});
+
+test('mutating routes enforce every actor-target role combination', async () => {
+  const { user: root, token: superadmin } = await actor('root');
+  const { user: anotherRoot } = await seedUser('another_root', 'superadmin');
+  const { user: adminUser, token: admin } = await actor('admin', 'admin');
+  const { user: regularUser, token: regular } = await actor('regular', 'regular');
+  const attempts = [
+    // regular cannot create, edit, change roles or delete any account.
+    ['/users', { method: 'POST', token: regular, body: userData('denied') }],
+    [`/users/${regularUser.id}`, { method: 'PATCH', token: regular, body: { username: 'denied' } }],
+    [`/users/${regularUser.id}/role`, { method: 'PATCH', token: regular, body: { role: 'admin' } }],
+    [`/users/${regularUser.id}`, { method: 'DELETE', token: regular }],
+    // admin cannot create admin, edit or delete admin/superadmin, or change roles.
+    ['/users', { method: 'POST', token: admin, body: userData('denied_admin', 'admin') }],
+    [`/users/${adminUser.id}`, { method: 'PATCH', token: admin, body: { username: 'denied' } }],
+    [`/users/${root.id}`, { method: 'PATCH', token: admin, body: { username: 'denied' } }],
+    [`/users/${adminUser.id}`, { method: 'DELETE', token: admin }],
+    [`/users/${root.id}`, { method: 'DELETE', token: admin }],
+    [`/users/${regularUser.id}/role`, { method: 'PATCH', token: admin, body: { role: 'admin' } }],
+    // superadmin may edit only its own superadmin account and cannot delete a superadmin.
+    [`/users/${anotherRoot.id}`, { method: 'PATCH', token: superadmin, body: { username: 'denied' } }],
+    [`/users/${anotherRoot.id}`, { method: 'DELETE', token: superadmin }],
+    [`/users/${root.id}`, { method: 'DELETE', token: superadmin }],
+    [`/users/${anotherRoot.id}/role`, { method: 'PATCH', token: superadmin, body: { role: 'regular' } }],
+  ];
+  for (const [path, options] of attempts) {
+    const response = await request(path, options);
+    assert.equal(response.status, 403, `${options.method} ${path}: ${JSON.stringify(response.data)}`);
+  }
+  assert.equal(await User.count(), 4);
+});
+
+test('a disabled actor gets 401 for every protected endpoint, including writes', async () => {
+  const { user, token } = await actor('admin', 'admin');
+  const { user: target } = await seedUser('target');
+  await user.update({ enabled: false });
+  const cases = [
+    ['/users', { token }],
+    [`/users/${target.id}`, { token }],
+    ['/users', { method: 'POST', token, body: userData('new') }],
+    [`/users/${target.id}`, { method: 'PATCH', token, body: { enabled: false } }],
+    [`/users/${target.id}/role`, { method: 'PATCH', token, body: { role: 'admin' } }],
+    [`/users/${target.id}`, { method: 'DELETE', token }],
+  ];
+  for (const [path, options] of cases) {
+    assert.equal((await request(path, options)).status, 401, `${options.method ?? 'GET'} ${path}`);
+  }
+  assert.ok(await User.findByPk(target.id));
 });
 
 test('every documented HTTP response has an exercised integration scenario', () => {
