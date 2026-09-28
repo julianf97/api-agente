@@ -61,3 +61,23 @@ The database and schema must already exist. With `alter: false`, Sequelize creat
 | --- | --- | --- |
 | GET | `/` | Returns the API status message. |
 | GET | `/api-docs` | Opens Swagger UI. |
+
+## Integration tests
+
+The integration suite exercises every current HTTP module (`/auth/login` and all `/users` routes), Swagger UI, authentication, validation, role permissions, password hashing, pagination, updates, deletion, and invoice foreign-key protection. There are no invoice HTTP routes yet.
+
+Create a separate PostgreSQL schema for tests and configure your local `.env`:
+
+```dotenv
+DB_SCHEMA=api-agente
+DB_TEST_SCHEMA=api-agente-test
+JWT_SECRET=your-local-secret
+```
+
+Keep the existing `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, and `DB_NAME` pointed at the PostgreSQL instance containing the test schema. Then run:
+
+```sh
+npm test
+```
+
+The test runner sets `DB_USE_TEST_SCHEMA=true` before importing application modules. It refuses to run if `DB_TEST_SCHEMA` is missing, equals `DB_SCHEMA`, or is `public`. It creates missing model tables with `sync()` and **deletes all rows from the test schema's `users` and `invoices` tables before each test**. Never put data you wish to keep in those test tables. The suite does not start `src/server.js` or use the application's configured port.
