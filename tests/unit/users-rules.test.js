@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from '@jest/globals';
 import {
   canCreateUser, canEditUser, canDeleteUser, canChangeUserRole,
 } from '../../src/modules/users/users.permissions.js';
@@ -15,7 +14,8 @@ import bcrypt from 'bcrypt';
 const roles = [undefined, R.REGULAR, R.ADMIN, R.SUPERADMIN];
 
 function forbidden(action, message) {
-  assert.throws(action, (error) => error instanceof AuthorizationError && error.message === message);
+  expect(action).toThrow(AuthorizationError);
+  expect(action).toThrow(message);
 }
 
 test('create permission matrix rejects every unassignable role and actor', () => {
@@ -24,9 +24,9 @@ test('create permission matrix rejects every unassignable role and actor', () =>
       const allowed =
         (actorRole === R.SUPERADMIN && [R.REGULAR, R.ADMIN].includes(newRole)) ||
         (actorRole === R.ADMIN && newRole === R.REGULAR);
-      assert.equal(canCreateUser(actorRole, newRole), allowed, `${actorRole} creates ${newRole}`);
+      expect(canCreateUser(actorRole, newRole)).toBe(allowed);
       const action = () => assertCanCreateUser({ role: actorRole }, newRole);
-      if (allowed) assert.doesNotThrow(action);
+      if (allowed) expect(action).not.toThrow();
       else forbidden(action, M.CANNOT_CREATE_WITH_ROLE);
     }
   }
@@ -42,9 +42,9 @@ test('edit permission matrix includes self-only superadmin and guard defenses', 
         const allowed =
           actorRole === R.SUPERADMIN && (targetRole !== R.SUPERADMIN || sameAccount) ||
           actorRole === R.ADMIN && targetRole === R.REGULAR;
-        assert.equal(canEditUser(actor, user), allowed, `${actorRole} edits ${targetRole}, self=${sameAccount}`);
+        expect(canEditUser(actor, user)).toBe(allowed);
         const action = () => assertCanUpdateUser(actor, user, { username: 'new' });
-        if (allowed) assert.doesNotThrow(action);
+        if (allowed) expect(action).not.toThrow();
         else forbidden(action, M.CANNOT_EDIT);
       }
     }
@@ -53,8 +53,8 @@ test('edit permission matrix includes self-only superadmin and guard defenses', 
   const root = { id: 1, role: R.SUPERADMIN };
   forbidden(() => assertCanUpdateUser(self, root, { role: R.ADMIN }), M.CANNOT_CHANGE_ROLE_HERE);
   forbidden(() => assertCanUpdateUser(self, root, { enabled: false }), M.CANNOT_DISABLE_SUPERADMIN);
-  assert.doesNotThrow(() => assertCanUpdateUser(self, root, { enabled: true }));
-  assert.equal(canEditUser(undefined, root), false);
+  expect(() => assertCanUpdateUser(self, root, { enabled: true })).not.toThrow();
+  expect(canEditUser(undefined, root)).toBe(false);
 });
 
 test('delete permission matrix blocks superadmin targets', () => {
@@ -63,9 +63,9 @@ test('delete permission matrix blocks superadmin targets', () => {
       const allowed = targetRole !== R.SUPERADMIN && (
         actorRole === R.SUPERADMIN || actorRole === R.ADMIN && targetRole === R.REGULAR
       );
-      assert.equal(canDeleteUser(actorRole, targetRole), allowed);
+      expect(canDeleteUser(actorRole, targetRole)).toBe(allowed);
       const action = () => assertCanDeleteUser({ role: actorRole }, { role: targetRole });
-      if (allowed) assert.doesNotThrow(action);
+      if (allowed) expect(action).not.toThrow();
       else forbidden(action, M.CANNOT_DELETE);
     }
   }
@@ -78,9 +78,9 @@ test('role-change permission matrix covers actor, target and destination', () =>
       for (const newRole of [...roles, 'unknown']) {
         const allowed = actorRole === R.SUPERADMIN && targetRole !== R.SUPERADMIN &&
           [R.REGULAR, R.ADMIN].includes(newRole);
-        assert.equal(canChangeUserRole(actorRole, targetRole, newRole), allowed);
+        expect(canChangeUserRole(actorRole, targetRole, newRole)).toBe(allowed);
         const action = () => assertCanChangeUserRole({ role: actorRole }, { role: targetRole }, newRole);
-        if (allowed) assert.doesNotThrow(action);
+        if (allowed) expect(action).not.toThrow();
         else forbidden(action, M.CANNOT_CHANGE_ROLE);
       }
     }
@@ -91,16 +91,16 @@ test('role-change permission matrix covers actor, target and destination', () =>
 test('mapper hashes passwords and only maps explicitly supplied update fields', async () => {
   const plain = 'new password';
   const hash = await hashUserPassword(plain);
-  assert.notEqual(hash, plain);
-  assert.ok(await bcrypt.compare(plain, hash));
-  assert.deepEqual(await toUserUpdateData({}), {});
+  expect(hash).not.toBe(plain);
+  expect(await bcrypt.compare(plain, hash)).toBeTruthy();
+  expect(await toUserUpdateData({})).toStrictEqual({});
   const result = await toUserUpdateData({
     username: 'new', email: 'UPPER@EXAMPLE.COM', password: plain, enabled: false, role: R.ADMIN,
   });
-  assert.deepEqual(Object.keys(result).sort(), ['username', 'email', 'passwordHash', 'enabled'].sort());
-  assert.equal(result.email, 'upper@example.com');
-  assert.equal(result.enabled, false);
-  assert.ok(await bcrypt.compare(plain, result.passwordHash));
+  expect(Object.keys(result).sort()).toStrictEqual(['username', 'email', 'passwordHash', 'enabled'].sort());
+  expect(result.email).toBe('upper@example.com');
+  expect(result.enabled).toBe(false);
+  expect(await bcrypt.compare(plain, result.passwordHash)).toBeTruthy();
 });
 
 test('presenter strips credential and internal fields', () => {
@@ -108,7 +108,7 @@ test('presenter strips credential and internal fields', () => {
     id: 1, username: 'someone', email: 'x@example.com', role: R.REGULAR, enabled: true,
     createdAt: new Date(), updatedAt: new Date(), passwordHash: 'private', internal: 'private',
   };
-  assert.deepEqual(Object.keys(toUserResponse(source)).sort(), [
+  expect(Object.keys(toUserResponse(source)).sort()).toStrictEqual([
     'id', 'username', 'email', 'role', 'enabled', 'createdAt', 'updatedAt',
   ].sort());
 });
