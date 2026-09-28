@@ -43,7 +43,9 @@ const User = sequelize.define(
     },
   },
   {
-    schema: process.env.DB_SCHEMA,
+    schema: process.env.DB_USE_TEST_SCHEMA === 'true'
+      ? process.env.DB_TEST_SCHEMA
+      : process.env.DB_SCHEMA,
     tableName: 'users',
     timestamps: true,
   },

@@ -14,6 +14,12 @@ const sequelize = new Sequelize(
 
 async function initializeDatabase() {
   await sequelize.authenticate();
+
+  if (process.env.DB_USE_TEST_SCHEMA === 'true') {
+    // Registra User e Invoice antes de crear sus tablas.
+    await import('../models/index.js');
+    await sequelize.sync();
+  }
 }
 
 export { initializeDatabase, sequelize };
