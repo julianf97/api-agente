@@ -85,3 +85,17 @@ The test runner sets `DB_USE_TEST_SCHEMA=true` before importing application modu
 ### Response coverage
 
 The suite records the HTTP statuses it receives for each OpenAPI operation and fails if any documented response code has no exercised scenario. It also covers representative invalid values for each validated field, ID and pagination boundaries, the role permission matrix, disabled/deleted users, duplicate keys, password hashing, and the invoice deletion restriction. Database failures are deliberately injected at the Sequelize model boundary to exercise the documented 500 response; ordinary success and 4xx cases use the real PostgreSQL test schema. A passing run covers the documented response categories, not every mathematically possible request or every future business rule. Add scenarios whenever routes or documented responses change.
+
+### Test case inventory
+
+| Operation | Success | Validation and boundaries | Authentication and permissions | Missing/conflict/failure |
+| --- | --- | --- | --- | --- |
+| `POST /auth/login` | Correct credentials, case-normalized email, token contract | Missing/invalid email and password, unexpected fields, malformed JSON | Disabled account | Wrong password, missing account, injected database 500 |
+| `GET /users` | Every role, disabled records, default and boundary pagination, empty page, response shape | Invalid page/limit, unexpected query | Missing/malformed/expired token; disabled/deleted actor | Injected database 500 |
+| `POST /users` | Admin creates regular; superadmin creates regular/admin; defaults, trimming, hash, max accepted lengths | Missing/wrong-type/empty/overlong fields, UTF-8 password bytes, invalid role, unexpected fields, malformed JSON/content type | Missing/invalid token, disabled actor, forbidden roles | Case-insensitive duplicate email and duplicate username, injected database 500 |
+| `GET /users/{id}` | Every role reads an active or disabled account, response shape | Invalid and out-of-range IDs | Missing/invalid token, disabled actor | Missing ID 404, injected database 500 |
+| `PATCH /users/{id}` | Permitted actor/target pairs, fields, password hash, enabled toggle, self edit | Invalid ID/body/fields, role in wrong endpoint, malformed JSON/content type | All role combinations, disabled actor, cannot disable superadmin | Missing ID 404, duplicate username/email 409, injected database 500 |
+| `PATCH /users/{id}/role` | Promote and demote regular/admin | Invalid ID/role/body, unexpected fields, malformed JSON/content type | Non-superadmin, other superadmin target, disabled actor | Missing ID 404, injected database 500 |
+| `DELETE /users/{id}` | Permitted actor/target pairs, no response body | Invalid and out-of-range IDs | Forbidden actor/target pairs, disabled actor | Missing ID 404, invoice relation 409, injected database 500 |
+
+Run `npm run test:coverage` to see line and branch coverage. A response-code check compares the HTTP statuses exercised by the suite with all statuses declared in OpenAPI. The table is the finite inventory of currently identified input categories and business rules; it must be revised when requirements or routes change.
