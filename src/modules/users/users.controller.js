@@ -1,5 +1,4 @@
 import { matchedData } from 'express-validator';
-import { handleUserNotFound } from '../../errors/handle-user-not-found.js';
 import {
   createUser as createUserService,
   listUsers as listUsersService,
@@ -43,10 +42,6 @@ export async function getUserById(req, res, next) {
   try {
     const user = await getUserByIdService(req.params.id);
 
-    if (handleUserNotFound(user, res)) {
-      return;
-    }
-
     return res.status(200).json(toUserResponse(user));
   } catch (error) {
     return next(error);
@@ -60,10 +55,6 @@ export async function updateUser(req, res, next) {
       req.validatedBody,
       req.auth,
     );
-
-    if (handleUserNotFound(user, res)) {
-      return;
-    }
 
     return res.status(200).json(toUserResponse(user));
   } catch (error) {
@@ -79,10 +70,6 @@ export async function changeUserRole(req, res, next) {
       req.auth,
     );
 
-    if (handleUserNotFound(user, res)) {
-      return;
-    }
-
     return res.status(200).json(toUserResponse(user));
   } catch (error) {
     return next(error);
@@ -91,11 +78,7 @@ export async function changeUserRole(req, res, next) {
 
 export async function deleteUser(req, res, next) {
   try {
-    const deleted = await deleteUserService(req.params.id, req.auth);
-
-    if (handleUserNotFound(deleted, res)) {
-      return;
-    }
+    await deleteUserService(req.params.id, req.auth);
 
     return res.status(204).send();
   } catch (error) {
