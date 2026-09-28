@@ -1,3 +1,4 @@
+import { USERNAME_MAX_LENGTH, EMAIL_MAX_LENGTH, PASSWORD_MAX_UTF8_BYTES } from '../../../constants/validation-limits.js';
 import { body, checkExact } from 'express-validator';
 import {
   USER_ROLES,
@@ -13,7 +14,7 @@ export const createUserValidation = [
     .trim()
     .notEmpty().withMessage(MESSAGES.USERNAME_NOT_EMPTY)
     .bail()
-    .isLength({ max: 255 }).withMessage(MESSAGES.USERNAME_TOO_LONG),
+    .isLength({ max: USERNAME_MAX_LENGTH }).withMessage(MESSAGES.USERNAME_TOO_LONG),
 
   body('email')
     .exists().withMessage(MESSAGES.EMAIL_REQUIRED)
@@ -25,7 +26,7 @@ export const createUserValidation = [
     .bail()
     .isEmail().withMessage(MESSAGES.EMAIL_INVALID)
     .bail()
-    .isLength({ max: 255 }).withMessage(MESSAGES.EMAIL_TOO_LONG),
+    .isLength({ max: EMAIL_MAX_LENGTH }).withMessage(MESSAGES.EMAIL_TOO_LONG),
 
   body('password')
     .exists().withMessage(MESSAGES.PASSWORD_REQUIRED)
@@ -37,7 +38,7 @@ export const createUserValidation = [
     .custom((value) => value.trim().length > 0)
     .withMessage(MESSAGES.PASSWORD_ONLY_SPACES)
     .bail()
-    .custom((value) => Buffer.byteLength(value, 'utf8') <= 72)
+    .custom((value) => Buffer.byteLength(value, 'utf8') <= PASSWORD_MAX_UTF8_BYTES)
     .withMessage(MESSAGES.PASSWORD_TOO_LONG)
     .hide(),
 
