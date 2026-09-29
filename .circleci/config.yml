@@ -1,0 +1,47 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: cimg/node:22.0
+      - image: postgres:15
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres-ci-password
+          POSTGRES_DB: postgres
+
+    environment:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres-ci-password
+      DB_NAME: postgres
+      DB_SCHEMA: api-agente
+      DB_TEST_SCHEMA: api-agente-test
+      DB_USE_TEST_SCHEMA: "false"
+      JWT_SECRET: ci-test-secret-only-not-used-outside-this-job
+
+    steps:
+      - checkout
+
+      - run:
+          name: Instalar dependencias
+          command: npm ci
+
+      - run:
+          name: Esperar a PostgreSQL
+          command: |
+            timeout 60 bash -c 'until (echo > /dev/tcp/127.0.0.1/5432) 2>/dev/null; do sleep 1; done'
+
+      - run:
+          name: Crear esquemas y tablas
+          command: node scripts/bootstrap-db.js
+
+      - run:
+          name: Ejecutar todos los tests
+          command: npm test
+
+workflows:
+  tests:
+    jobs:
+      - test
