@@ -90,6 +90,35 @@ export const USER_VALIDATION_MESSAGES = Object.freeze({
   UPDATE_REQUIRES_FIELD: 'Enviá al menos un campo para actualizar.',
 });
 
+export const INVOICE_VALIDATION_MESSAGES = Object.freeze({
+  TEXT: Object.freeze({
+    number: Object.freeze({
+      REQUIRED: 'number es obligatorio.',
+      MUST_BE_STRING: 'number debe ser texto.',
+      TOO_LONG: 'number no puede superar 255 caracteres.',
+      NOT_EMPTY: 'number no puede estar vacío.',
+    }),
+    customerName: Object.freeze({
+      REQUIRED: 'customerName es obligatorio.',
+      MUST_BE_STRING: 'customerName debe ser texto.',
+      TOO_LONG: 'customerName no puede superar 255 caracteres.',
+      NOT_EMPTY: 'customerName no puede estar vacío.',
+    }),
+  }),
+  AMOUNT_REQUIRED: 'amount es obligatorio.',
+  AMOUNT_MUST_BE_STRING: 'amount debe ser texto decimal.',
+  AMOUNT_INVALID: 'amount debe ser un decimal positivo de hasta 10 enteros y 2 decimales.',
+  AMOUNT_NOT_POSITIVE: 'amount debe ser mayor que cero.',
+  USER_ID_MUST_BE_INTEGER: 'userId debe ser un entero JSON.',
+  USER_ID_INVALID: 'userId debe ser un entero positivo válido.',
+  STATUS_INVALID: 'status no es válido.',
+  ID_MUST_BE_POSITIVE_INTEGER: 'El ID debe ser un entero positivo.',
+  ID_INVALID: 'El ID no es válido.',
+  PAGE_INVALID: 'Page debe ser mayor o igual a 1.',
+  LIMIT_INVALID: 'Limit debe estar entre 1 y 100.',
+  UPDATE_REQUIRES_FIELD: 'Enviá al menos un campo para actualizar.',
+});
+
 export const REQUEST_ERROR_MESSAGES = Object.freeze({
   UNKNOWN_FIELD: 'Campo no permitido.',
   MALFORMED_JSON: 'El JSON enviado no es válido.',
