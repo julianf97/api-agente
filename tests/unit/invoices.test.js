@@ -3,9 +3,9 @@ import express from 'express';
 import Ajv from 'ajv';
 import { UniqueConstraintError } from 'sequelize';
 import { openApiDocument } from '../../src/swagger/index.js';
-import {
-  createInvoiceValidation, updateInvoiceValidation, listInvoicesValidation,
-} from '../../src/modules/invoices/validators/invoice-fields.validator.js';
+import { createInvoiceValidation } from '../../src/modules/invoices/validators/createInvoice.validator.js';
+import { updateInvoiceValidation } from '../../src/modules/invoices/validators/updateInvoice.validator.js';
+import { listInvoicesValidation } from '../../src/modules/invoices/validators/listInvoices.validator.js';
 import { canReadInvoice, canEditInvoice, isInvoiceManager } from '../../src/modules/invoices/invoices.permissions.js';
 import { handleInvoiceNumberConflict } from '../../src/errors/invoice-number-conflict-error.js';
 import { handleValidation } from '../../src/middleweres/handle-validation.js';

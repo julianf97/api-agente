@@ -6,12 +6,10 @@ import {
   updateInvoice,
   deleteInvoice,
 } from './invoices.controller.js';
-import {
-  invoiceIdValidation,
-  listInvoicesValidation,
-  createInvoiceValidation,
-  updateInvoiceValidation,
-} from './validators/invoice-fields.validator.js';
+import { invoiceIdValidation } from './validators/invoiceId.validator.js';
+import { listInvoicesValidation } from './validators/listInvoices.validator.js';
+import { createInvoiceValidation } from './validators/createInvoice.validator.js';
+import { updateInvoiceValidation } from './validators/updateInvoice.validator.js';
 import { handleValidation } from '../../middleweres/handle-validation.js';
 import { requireRoles } from '../../middleweres/requiere-roles.js';
 import { USER_ROLES } from '../../constants/constants.js';
