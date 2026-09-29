@@ -37,6 +37,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    command: ["sh", "-c", "node scripts/bootstrap-db.js && node src/server.js"]
 
 volumes:
   postgres_data:
