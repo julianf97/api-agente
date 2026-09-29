@@ -58,7 +58,7 @@ describe('Facturas: permisos y contrato de entrada', () => {
       for (const body of [
         { ...valid, amount: '0.00' }, { ...valid, amount: '1.001' },
         { ...valid, number: ' ' }, { ...valid, number: 'a'.repeat(256) },
-        { ...valid, userId: 0 }, { ...valid, extra: true },
+        { ...valid, userId: 0 }, { ...valid, userId: '1' }, { ...valid, extra: true },
       ]) {
         expect(validateCreate(body)).toBe(false);
         expect((await send('/invoices', 'POST', body)).status).toBe(400);
