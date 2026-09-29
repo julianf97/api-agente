@@ -61,10 +61,19 @@ The database and schema must already exist. With `alter: false`, Sequelize creat
 | --- | --- | --- |
 | GET | `/` | Returns the API status message. |
 | GET | `/api-docs` | Opens Swagger UI. |
+| GET | `/invoices` | Lists invoices with pagination; regular users see only their own. |
+| POST | `/invoices` | Creates an invoice; regular users can create only their own draft. |
+| GET | `/invoices/:id` | Reads an invoice; other users' invoices are hidden from regular users. |
+| PATCH | `/invoices/:id` | Edits an invoice; regular users may edit only their own draft's number, customer and amount. |
+| DELETE | `/invoices/:id` | Deletes an invoice; admin or superadmin only. |
+
+All invoice routes require a bearer token. Admin and superadmin can read, create, edit and delete every invoice, including assigning its `userId` and changing its `status` (`draft`, `issued`, `paid`, `cancelled`). Regular users cannot delete invoices or change owner or status. An invoice owned by another regular user responds with 404 on read or edit. When an invoice first becomes `issued` or `paid`, the server sets `issuedAt`; clients cannot set it directly. The globally unique `number` produces 409 on collision.
+
+Create with `number`, `customerName` and a positive decimal **string** such as `"125.00"` in `amount`. The amount accepts up to 10 integer digits and two decimal digits; JSON numbers are rejected. Managers may also provide `userId` and `status`. Pagination uses `page` (default 1) and `limit` (default 20, maximum 100). See `/api-docs` for exact request and response schemas.
 
 ## Integration tests
 
-The integration suite exercises every current HTTP module (`/auth/login` and all `/users` routes), Swagger UI, authentication, validation, role permissions, password hashing, pagination, updates, deletion, and invoice foreign-key protection. There are no invoice HTTP routes yet.
+The integration suite exercises `/auth/login`, all `/users` and `/invoices` routes, Swagger UI, authentication, validation, role permissions, pagination, updates, deletion, and invoice foreign-key protection.
 
 Create a separate PostgreSQL schema for tests and configure your local `.env`:
 
@@ -97,6 +106,11 @@ The suite records the HTTP statuses it receives for each OpenAPI operation and f
 | `PATCH /users/{id}` | Permitted actor/target pairs, fields, password hash, enabled toggle, self edit | Invalid ID/body/fields, role in wrong endpoint, malformed JSON/content type | All role combinations, disabled actor, cannot disable superadmin | Missing ID 404, duplicate username/email 409, injected database 500 |
 | `PATCH /users/{id}/role` | Promote and demote regular/admin | Invalid ID/role/body, unexpected fields, malformed JSON/content type | Non-superadmin, other superadmin target, disabled actor | Missing ID 404, injected database 500 |
 | `DELETE /users/{id}` | Permitted actor/target pairs, no response body | Invalid and out-of-range IDs | Forbidden actor/target pairs, disabled actor | Missing ID 404, invoice relation 409, injected database 500 |
+| `GET /invoices` | Own records for regular; all for managers, pagination | Invalid page/limit, unknown query | Missing token | Injected 500 |
+| `POST /invoices` | Own draft; manager assigns owner and issued status | Missing/invalid fields, amount precision and range, unknown fields | Missing token, regular cannot assign owner or issued status | Missing owner 404, duplicate number 409, injected 500 |
+| `GET /invoices/{id}` | Own and manager read, response contract | Invalid ID | Missing token, another regular user's invoice hidden | Missing/foreign 404, injected 500 |
+| `PATCH /invoices/{id}` | Own draft fields, manager changes owner and status | Empty/invalid body, unknown fields, invalid ID | Missing token, another user, own issued draft restrictions | Missing owner/invoice 404, duplicate number 409, injected 500 |
+| `DELETE /invoices/{id}` | Admin and superadmin, empty response | Invalid ID | Missing token, regular forbidden | Missing invoice 404, injected 500 |
 
 Run `npm run test:coverage` to see Jest's V8 line and branch coverage and generate `coverage/lcov.info`. A response-code check compares the HTTP statuses exercised by the suite with all statuses declared in OpenAPI. The table is the finite inventory of currently identified input categories and business rules; it must be revised when requirements or routes change.
 
