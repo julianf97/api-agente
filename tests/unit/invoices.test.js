@@ -6,7 +6,14 @@ import { openApiDocument } from '../../src/swagger/index.js';
 import { createInvoiceValidation } from '../../src/modules/invoices/validators/createInvoice.validator.js';
 import { updateInvoiceValidation } from '../../src/modules/invoices/validators/updateInvoice.validator.js';
 import { listInvoicesValidation } from '../../src/modules/invoices/validators/listInvoices.validator.js';
-import { canReadInvoice, canEditInvoice, isInvoiceManager } from '../../src/modules/invoices/invoices.permissions.js';
+import {
+  canReadInvoice, canEditInvoice, canCreateInvoice, canUpdateInvoice,
+  invoiceVisibility, isInvoiceManager,
+} from '../../src/modules/invoices/invoices.permissions.js';
+import { assertCanCreate, assertCanUpdate } from '../../src/modules/invoices/invoices.guards.js';
+import {
+  toInvoiceCreationData, toInvoiceUpdateData,
+} from '../../src/modules/invoices/invoices.mapper.js';
 import { handleInvoiceNumberConflict } from '../../src/errors/invoice-number-conflict-error.js';
 import { handleValidation } from '../../src/middleweres/handle-validation.js';
 
@@ -31,6 +38,36 @@ describe('Facturas: permisos y contrato de entrada', () => {
       expect(canReadInvoice(actor, draft)).toBe(true);
       expect(canEditInvoice(actor, draft)).toBe(true);
     }
+  });
+
+  test('creación y actualización separan permisos de preparación de datos', () => {
+    const regular = { sub: '1', role: 'regular' };
+    const admin = { sub: '2', role: 'admin' };
+    const draft = { userId: 1, status: 'draft', issuedAt: null };
+    const data = { number: 'F-1', customerName: 'Cliente', amount: '25.00' };
+
+    expect(invoiceVisibility(regular)).toEqual({ userId: 1 });
+    expect(invoiceVisibility(admin)).toEqual({});
+    expect(canCreateInvoice(regular, { ...data, status: 'draft' })).toBe(true);
+    expect(canCreateInvoice(regular, { ...data, userId: 2 })).toBe(false);
+    expect(canCreateInvoice(regular, { ...data, status: 'issued' })).toBe(false);
+    expect(canUpdateInvoice(regular, { amount: '50.00' })).toBe(true);
+    expect(canUpdateInvoice(regular, { status: 'paid' })).toBe(false);
+    expect(() => assertCanCreate(regular, { ...data, userId: 2 })).toThrow();
+    expect(() => assertCanUpdate(regular, draft, { status: 'issued' })).toThrow();
+    expect(() => assertCanUpdate(regular, { ...draft, status: 'issued' }, { amount: '50.00' })).toThrow();
+    expect(() => assertCanUpdate(admin, draft, { status: 'issued' })).not.toThrow();
+
+    expect(toInvoiceCreationData(data, regular)).toMatchObject({
+      ...data, userId: 1, status: 'draft', issuedAt: null,
+    });
+    expect(toInvoiceCreationData({ ...data, userId: 1, status: 'issued' }, admin))
+      .toMatchObject({ userId: 1, status: 'issued', issuedAt: expect.any(Date) });
+    expect(toInvoiceUpdateData({ status: 'paid' }, draft))
+      .toMatchObject({ status: 'paid', issuedAt: expect.any(Date) });
+    const issuedAt = new Date('2025-01-01');
+    expect(toInvoiceUpdateData({ status: 'paid' }, { ...draft, issuedAt }))
+      .toEqual({ status: 'paid' });
   });
 
   test('OpenAPI y validadores concuerdan para límites y normalización', async () => {
