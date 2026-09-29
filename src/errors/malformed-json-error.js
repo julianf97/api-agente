@@ -1,6 +1,7 @@
 import { REQUEST_ERROR_MESSAGES } from '../constants/constants.js';
 
 export function handleMalformedJsonError(error, res) {
+  
   if (!(error instanceof SyntaxError && error.status === 400 && 'body' in error)) {
     return false;
   }

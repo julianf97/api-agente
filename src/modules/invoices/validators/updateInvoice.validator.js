@@ -2,7 +2,10 @@ import { body, checkExact, oneOf } from 'express-validator';
 import { INVOICE_VALIDATION_MESSAGES as MESSAGES } from '../../../constants/constants.js';
 import { invoiceIdValidation } from './invoiceId.validator.js';
 import {
-  invoiceAmount, invoiceStatus, invoiceText, invoiceUserId,
+  invoiceAmount, 
+  invoiceStatus, 
+  invoiceText, 
+  invoiceUserId,
 } from './invoice-fields.validator.js';
 
 export const updateInvoiceValidation = [
