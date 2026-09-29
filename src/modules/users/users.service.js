@@ -5,17 +5,17 @@ import {
   updateUser as updateUserRepository,
   deleteUser as deleteUserRepository,
 } from './users.repository.js';
-import { findExistingUserById } from './find-existing-user.js';
+import { findExistingUserById } from './support/find-existing-user.js';
 import {
   assertCanCreateUser,
   assertCanUpdateUser,
   assertCanChangeUserRole,
   assertCanDeleteUser,
-} from './users.guards.js';
+} from './support/users.guards.js';
 import {
   hashUserPassword,
   toUserUpdateData,
-} from './users.mapper.js';
+} from './support/users.mapper.js';
 
 export async function createUser(
   { username, email, password, role = USER_ROLES.REGULAR },

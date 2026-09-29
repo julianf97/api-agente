@@ -1,4 +1,4 @@
-import { USER_ROLES } from '../../constants/constants.js';
+import { USER_ROLES } from '../../../constants/constants.js';
 
 export function canCreateUser(actorRole, newUserRole) {
   if (![USER_ROLES.REGULAR, USER_ROLES.ADMIN].includes(newUserRole)) {

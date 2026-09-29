@@ -1,5 +1,5 @@
-import { AuthorizationError } from '../../errors/authorization-error.js';
-import { InvoiceNotFoundError } from '../../errors/invoice-not-found-error.js';
+import { AuthorizationError } from '../../../errors/authorization-error.js';
+import { InvoiceNotFoundError } from '../../../errors/invoice-not-found-error.js';
 import {
   isInvoiceManager,
   canReadInvoice, 

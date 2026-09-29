@@ -1,5 +1,5 @@
-import { UserNotFoundError } from '../../errors/user-not-found-error.js';
-import { findUserById } from './users.repository.js';
+import { UserNotFoundError } from '../../../errors/user-not-found-error.js';
+import { findUserById } from '../users.repository.js';
 
 export async function findExistingUserById(id) {
   const user = await findUserById(id);

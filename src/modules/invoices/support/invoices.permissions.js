@@ -1,4 +1,4 @@
-import { USER_ROLES, INVOICE_STATUSES } from '../../constants/constants.js';
+import { USER_ROLES, INVOICE_STATUSES } from '../../../constants/constants.js';
 
 export function  isInvoiceManager(actor) {
  return  [USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN].includes(actor?.role);

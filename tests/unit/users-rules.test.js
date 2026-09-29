@@ -1,14 +1,14 @@
 import { describe, expect, test } from '@jest/globals';
 import {
   canCreateUser, canEditUser, canDeleteUser, canChangeUserRole,
-} from '../../src/modules/users/users.permissions.js';
+} from '../../src/modules/users/support/users.permissions.js';
 import {
   assertCanCreateUser, assertCanUpdateUser, assertCanDeleteUser, assertCanChangeUserRole,
-} from '../../src/modules/users/users.guards.js';
+} from '../../src/modules/users/support/users.guards.js';
 import { USER_ROLES as R, USER_ERROR_MESSAGES as M } from '../../src/constants/constants.js';
 import { AuthorizationError } from '../../src/errors/authorization-error.js';
-import { hashUserPassword, toUserUpdateData } from '../../src/modules/users/users.mapper.js';
-import { toUserResponse } from '../../src/modules/users/users.presenter.js';
+import { hashUserPassword, toUserUpdateData } from '../../src/modules/users/support/users.mapper.js';
+import { toUserResponse } from '../../src/modules/users/support/users.presenter.js';
 import bcrypt from 'bcrypt';
 
 const roles = [undefined, R.REGULAR, R.ADMIN, R.SUPERADMIN];

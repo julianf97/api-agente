@@ -9,11 +9,11 @@ import { listInvoicesValidation } from '../../src/modules/invoices/validators/li
 import {
   canReadInvoice, canEditInvoice, canCreateInvoice, canUpdateInvoice,
   invoiceVisibility, isInvoiceManager,
-} from '../../src/modules/invoices/invoices.permissions.js';
-import { assertCanCreate, assertCanUpdate } from '../../src/modules/invoices/invoices.guards.js';
+} from '../../src/modules/invoices/support/invoices.permissions.js';
+import { assertCanCreate, assertCanUpdate } from '../../src/modules/invoices/support/invoices.guards.js';
 import {
   toInvoiceCreationData, toInvoiceUpdateData,
-} from '../../src/modules/invoices/invoices.mapper.js';
+} from '../../src/modules/invoices/support/invoices.mapper.js';
 import { handleInvoiceNumberConflict } from '../../src/errors/invoice-number-conflict-error.js';
 import { handleValidation } from '../../src/middleweres/handle-validation.js';
 

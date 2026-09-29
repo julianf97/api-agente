@@ -7,7 +7,7 @@ import {
   changeUserRole as changeUserRoleService,
   deleteUser as deleteUserService,
 } from './users.service.js';
-import { toUserResponse } from './users.presenter.js';
+import { toUserResponse } from './support/users.presenter.js';
 
 export async function createUser(req, res, next) {
   try {

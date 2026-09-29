@@ -1,4 +1,4 @@
-import { INVOICE_STATUSES } from '../../constants/constants.js';
+import { INVOICE_STATUSES } from '../../../constants/constants.js';
 import { isInvoiceManager } from './invoices.permissions.js';
 
 export function isIssued(status) {

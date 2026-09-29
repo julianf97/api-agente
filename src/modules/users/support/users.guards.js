@@ -1,5 +1,5 @@
-import { USER_ERROR_MESSAGES, USER_ROLES } from '../../constants/constants.js';
-import { AuthorizationError } from '../../errors/authorization-error.js';
+import { USER_ERROR_MESSAGES, USER_ROLES } from '../../../constants/constants.js';
+import { AuthorizationError } from '../../../errors/authorization-error.js';
 import {
   canCreateUser,
   canEditUser,

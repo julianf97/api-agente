@@ -1,4 +1,4 @@
-import { findExistingUserById } from '../users/find-existing-user.js';
+import { findExistingUserById } from '../../users/support/find-existing-user.js';
 
 export async function assertInvoiceOwnerExists(userId) {
   await findExistingUserById(userId);

@@ -1,5 +1,5 @@
 import { matchedData } from 'express-validator';
-import { toInvoiceResponse } from './invoices.presenter.js';
+import { toInvoiceResponse } from './support/invoices.presenter.js';
 import {
   listInvoices as listInvoicesService,
   getInvoice as getInvoiceService,
