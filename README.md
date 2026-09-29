@@ -1,5 +1,7 @@
 # API Agent
 
+[![Tests](https://github.com/julianf97/api-agente/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/julianf97/api-agente/actions/workflows/tests.yml)
+
 A minimal Express API with PostgreSQL persistence through Sequelize and interactive OpenAPI documentation.
 
 ## Run with Docker
