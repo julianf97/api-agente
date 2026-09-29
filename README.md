@@ -2,6 +2,28 @@
 
 A minimal Express API with PostgreSQL persistence through Sequelize and interactive OpenAPI documentation.
 
+## Run with Docker
+
+Docker Compose starts PostgreSQL 15 and the API. Docker is the only prerequisite for this option; no local Node.js or PostgreSQL installation is needed.
+
+Copy `.env.example` to `.env`, replace `DB_PASSWORD` and `JWT_SECRET` with your own values, then run:
+
+```sh
+docker compose up --build -d
+docker compose ps
+```
+
+In PowerShell, use `Copy-Item .env.example .env` to create the file. The API is available at `http://localhost:3000` and Swagger UI at `http://localhost:3000/api-docs`. `HOST_PORT` and `DB_HOST_PORT` in `.env` set the host ports (defaults: 3000 and 5433). The containers communicate on port 5432; Compose overrides `DB_HOST` and `DB_PORT` from `.env` inside the API. Your local PostgreSQL tools can connect to `localhost:5433` using the credentials in `.env`.
+
+On first startup, the API creates the development and test schemas and any missing `users` and `invoices` tables in the development schema. It does not alter existing tables or seed users. PostgreSQL data persists in the `postgres_data` volume. Changing `DB_USER`, `DB_PASSWORD`, or `DB_NAME` in `.env` after the volume has been initialized does not change existing PostgreSQL credentials or database names.
+
+```sh
+docker compose logs -f api   # inspect startup
+docker compose down          # stop without deleting data
+```
+
+To run the integration suite against the Compose database, install Node.js dependencies on your host and use `.env` with `DB_HOST=localhost`, `DB_PORT=5433`, and distinct `DB_SCHEMA` / `DB_TEST_SCHEMA` values; then run `npm test` from the host. The tests clear rows in the test schema. If your host already uses another PostgreSQL instance, point the local variables at the Compose instance before running tests.
+
 ## Prerequisites
 
 - Node.js 18 or newer
@@ -50,10 +72,10 @@ The API starts in this order:
 1. Load the environment and configure the PostgreSQL connection.
 2. Register the `User` and `Invoice` models and their associations.
 3. Authenticate with PostgreSQL.
-4. Run `sequelize.sync({ alter: false })`.
+4. In test mode only, run `sequelize.sync()` for the test schema. Docker Compose separately initializes missing development tables before starting the API.
 5. Start accepting HTTP requests.
 
-The database and schema must already exist. With `alter: false`, Sequelize creates missing tables but does not alter existing ones. Change only the `false` literal in `src/db/index.js` to `true` to enable model-to-table reconciliation for local development. `alter: true` is not a safe production migration strategy.
+For a direct `npm start`, the database, schema and tables must already exist. The Compose bootstrap creates missing schemas and development tables without altering existing ones. Use migrations for changes to existing table structures.
 
 ## Endpoints
 
