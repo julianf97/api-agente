@@ -828,7 +828,7 @@ describe('API HTTP con PostgreSQL', () => {
         {}, { ...valid, amount: 1 }, { ...valid, amount: '0.00' },
         { ...valid, amount: '1.001' }, { ...valid, amount: '10000000000.00' },
         { ...valid, number: '   ' }, { ...valid, customerName: '' },
-        { ...valid, status: 'sent' }, { ...valid, userId: '1.5' },
+        { ...valid, status: 'sent' }, { ...valid, userId: '1.5' }, { ...valid, userId: '1' },
         { ...valid, issuedAt: '2024-01-01' },
       ]) expect((await request('/invoices', { method: 'POST', token, body })).status).toBe(400);
       for (const body of [{}, { amount: '-1' }, { status: 'wrong' }, { foo: 'x' }]) {
