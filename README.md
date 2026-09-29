@@ -1,4 +1,4 @@
-# API Agente
+# API Agent
 
 API REST de demostración para gestionar usuarios y facturas, desarrollada con Express, PostgreSQL y Sequelize.
 
