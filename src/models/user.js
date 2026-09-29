@@ -32,7 +32,6 @@ const User = sequelize.define(
         isIn: [[
           USER_ROLES.REGULAR,
           USER_ROLES.ADMIN,
-          USER_ROLES.SUPERADMIN,
         ]],
       },
     },

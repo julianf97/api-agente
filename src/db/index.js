@@ -16,7 +16,7 @@ async function initializeDatabase() {
   await sequelize.authenticate();
 
   if (process.env.DB_USE_TEST_SCHEMA === 'true') {
-    // Registra User e Invoice antes de crear sus tablas.
+    // Registra todos los modelos antes de crear las tablas del schema de pruebas.
     await import('../models/index.js');
     await sequelize.sync();
   }
