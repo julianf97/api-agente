@@ -3,6 +3,8 @@ import { handleAuthorizationError } from '../errors/authorization-error.js';
 import { handleMalformedJsonError } from '../errors/malformed-json-error.js';
 import { handleUniqueConstraintError } from '../errors/unique-constraint-error.js';
 import { handleUserNotFoundError } from '../errors/user-not-found-error.js';
+import { handleInvoiceNotFoundError } from '../errors/invoice-not-found-error.js';
+import { handleInvoiceNumberConflict } from '../errors/invoice-number-conflict-error.js';
 
 export function errorHandler(error, _req, res, _next) {
   if (handleAuthorizationError(error, res)) {
@@ -13,7 +15,15 @@ export function errorHandler(error, _req, res, _next) {
     return;
   }
 
+  if (handleInvoiceNumberConflict(error, res)) {
+    return;
+  }
+
   if (handleUniqueConstraintError(error, res)) {
+    return;
+  }
+
+  if (handleInvoiceNotFoundError(error, res)) {
     return;
   }
 
