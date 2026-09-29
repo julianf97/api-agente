@@ -167,6 +167,30 @@ export const openApiDocument = {
   },
 };
 
+export function sortSwaggerOperations(first, second) {
+  const position = (operation) => {
+    const method = operation.get('method');
+    const path = operation.get('path');
+
+    if (method === 'get') {
+      return path.endsWith('/{id}') ? 1 : 0;
+    }
+
+    if (method === 'post') return 2;
+    if (method === 'patch') return path.endsWith('/role') ? 4 : 3;
+    if (method === 'delete') return 5;
+
+    return 6;
+  };
+
+  return position(first) - position(second)
+    || first.get('path').localeCompare(second.get('path'));
+}
+
 export default function registerSwagger(app) {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocument, {
+    swaggerOptions: {
+      operationsSorter: sortSwaggerOperations,
+    },
+  }));
 }
