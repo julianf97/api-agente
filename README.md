@@ -63,21 +63,6 @@ Cuando una factura pasa por primera vez a `issued` o `paid`, la API asigna autom
 
 CircleCI ejecuta los tests automáticamente. GitHub Actions ejecuta la suite con cobertura y publica el reporte en Coveralls.
 
-## Índice
-
-- [Funcionalidades](#funcionalidades)
-- [Roles y permisos](#roles-y-permisos)
-- [Badges](#badges)
-- [Tecnologías](#tecnologías)
-- [Requisitos](#requisitos)
-- [Levantar el proyecto con Docker](#levantar-el-proyecto-con-docker)
-- [Swagger](#swagger)
-- [Cuentas de prueba](#cuentas-de-prueba)
-- [Endpoints](#endpoints)
-- [Tests](#tests)
-- [Comandos útiles de Docker](#comandos-útiles-de-docker)
-- [Autor](#autor)
-
 ## Tecnologías
 
 | Tecnología | Uso |
