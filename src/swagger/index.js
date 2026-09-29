@@ -1,4 +1,5 @@
 import swaggerUi from 'swagger-ui-express';
+import { invoicePaths, invoiceSchemas } from './invoices.js';
 import { USER_ROLES } from '../constants/constants.js';
 import {
   USERNAME_MAX_LENGTH, EMAIL_MAX_LENGTH, PASSWORD_MAX_UTF8_BYTES,
@@ -55,6 +56,7 @@ export const openApiDocument = {
   },
 
   paths: {
+    ...invoicePaths,
     '/auth/login': {
       post: {
         tags: ['Auth'],
@@ -419,6 +421,7 @@ export const openApiDocument = {
     },
 
     schemas: {
+      ...invoiceSchemas,
       ValidationErrorResponse: {
         type: 'object',
         additionalProperties: false,
