@@ -2,6 +2,8 @@
 
 [![Tests](https://github.com/julianf97/api-agente/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/julianf97/api-agente/actions/workflows/tests.yml)
 
+[![Coverage Status](https://coveralls.io/repos/github/julianf97/api-agente/badge.svg?branch=main)](https://coveralls.io/github/julianf97/api-agente?branch=main)
+
 A minimal Express API with PostgreSQL persistence through Sequelize and interactive OpenAPI documentation.
 
 ## Run with Docker
