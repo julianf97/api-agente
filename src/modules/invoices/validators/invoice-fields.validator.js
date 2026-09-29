@@ -9,7 +9,8 @@ const text = (field) => body(field).isString().withMessage(`${field} debe ser te
 const amount = () => body('amount').isString().withMessage('amount debe ser texto decimal.')
   .bail().matches(amountPattern).withMessage('amount debe ser un decimal positivo de hasta 10 enteros y 2 decimales.')
   .bail().custom((value) => Number(value) > 0).withMessage('amount debe ser mayor que cero.');
-const userId = () => body('userId').isInt({ min: 1, max: USER_ID_MAX })
+const userId = () => body('userId').custom(Number.isInteger).withMessage('userId debe ser un entero JSON.')
+  .bail().isInt({ min: 1, max: USER_ID_MAX })
   .withMessage('userId debe ser un entero positivo válido.').toInt();
 const status = () => body('status').isIn(Object.values(INVOICE_STATUSES))
   .withMessage('status no es válido.');
