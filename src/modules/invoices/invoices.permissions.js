@@ -1,7 +1,8 @@
 import { USER_ROLES, INVOICE_STATUSES } from '../../constants/constants.js';
 
-export const isInvoiceManager = (actor) =>
+export function  isInvoiceManager(actor) {
   [USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN].includes(actor?.role);
+}
 
 export function canReadInvoice(actor, invoice) {
   return isInvoiceManager(actor) || Number(actor?.sub) === invoice.userId;
@@ -25,5 +26,8 @@ export function canUpdateInvoice(actor, data) {
 }
 
 export function invoiceVisibility(actor) {
-  return isInvoiceManager(actor) ? {} : { userId: Number(actor.sub) };
+  return isInvoiceManager(actor) ? 
+  {} 
+  : 
+  { userId: Number(actor.sub) };
 }

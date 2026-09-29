@@ -1,11 +1,4 @@
 import { Router } from 'express';
-import {
-  listInvoices,
-  getInvoice,
-  createInvoice,
-  updateInvoice,
-  deleteInvoice,
-} from './invoices.controller.js';
 import { invoiceIdValidation } from './validators/invoiceId.validator.js';
 import { listInvoicesValidation } from './validators/listInvoices.validator.js';
 import { createInvoiceValidation } from './validators/createInvoice.validator.js';
@@ -13,6 +6,14 @@ import { updateInvoiceValidation } from './validators/updateInvoice.validator.js
 import { handleValidation } from '../../middleweres/handle-validation.js';
 import { requireRoles } from '../../middleweres/requiere-roles.js';
 import { USER_ROLES } from '../../constants/constants.js';
+import {
+  listInvoices,
+  getInvoice,
+  createInvoice,
+  updateInvoice,
+  deleteInvoice,
+} from './invoices.controller.js';
+
 
 const router = Router();
 router.get('/', listInvoicesValidation, handleValidation, listInvoices);

@@ -1,4 +1,5 @@
 import { matchedData } from 'express-validator';
+import { toInvoiceResponse } from './invoices.presenter.js';
 import {
   listInvoices as listInvoicesService,
   getInvoice as getInvoiceService,
@@ -6,7 +7,6 @@ import {
   editInvoice as editInvoiceService,
   removeInvoice as removeInvoiceService,
 } from './invoices.service.js';
-import { toInvoiceResponse } from './invoices.presenter.js';
 
 export async function listInvoices(req, res, next) {
   try {

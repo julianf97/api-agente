@@ -1,7 +1,11 @@
 import { AuthorizationError } from '../../errors/authorization-error.js';
 import { InvoiceNotFoundError } from '../../errors/invoice-not-found-error.js';
 import {
-  isInvoiceManager, canReadInvoice, canEditInvoice, canCreateInvoice, canUpdateInvoice,
+  isInvoiceManager,
+  canReadInvoice, 
+  canEditInvoice, 
+  canCreateInvoice, 
+  canUpdateInvoice,
 } from './invoices.permissions.js';
 
 export function assertCanRead(actor, invoice) {

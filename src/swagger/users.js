@@ -256,7 +256,7 @@ export const userPaths = {
 
     delete: {
       tags: ['Users'],
-      summary: 'Eliminar físicamente un usuario',
+      summary: 'Eliminar un usuario',
       description:
         'Admin solo puede eliminar usuarios regular. Superadmin puede eliminar usuarios regular y admin. La cuenta superadmin no se puede eliminar. Un usuario con registros relacionados, como facturas, no se puede eliminar.',
       security: [{ bearerAuth: [] }],

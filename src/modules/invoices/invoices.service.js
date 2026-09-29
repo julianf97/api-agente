@@ -1,3 +1,6 @@
+import { invoiceVisibility } from './invoices.permissions.js';
+import { findExistingInvoice } from './find-existing-invoice.js';
+import { toInvoiceCreationData, toInvoiceUpdateData } from './invoices.mapper.js';
 import {
   assertCanRead,
   assertCanCreate, 
@@ -14,11 +17,9 @@ import {
   assertInvoiceOwnerExists, 
   assertUpdatedInvoiceOwnerExists,
 } from './assert-invoice-owner-exists.js';
-import { invoiceVisibility } from './invoices.permissions.js';
-import { findExistingInvoice } from './find-existing-invoice.js';
-import { toInvoiceCreationData, toInvoiceUpdateData } from './invoices.mapper.js';
 
 export async function listInvoices({ page = 1, limit = 20 }, actor) {
+
   // Limita la consulta a las facturas propias si el usuario es regular.
   const where = invoiceVisibility(actor);
 
@@ -38,6 +39,7 @@ export async function listInvoices({ page = 1, limit = 20 }, actor) {
 }
 
 export async function getInvoice(id, actor) {
+
   // Busca la factura y devuelve 404 si no existe.
   const invoice = await findExistingInvoice(id);
 
