@@ -75,6 +75,20 @@ Create with `number`, `customerName` and a positive decimal **string** such as `
 
 The integration suite exercises `/auth/login`, all `/users` and `/invoices` routes, Swagger UI, authentication, validation, role permissions, pagination, updates, deletion, and invoice foreign-key protection.
 
+The HTTP suite is organized under `tests/integration/`. `api.test.js` starts the application, prepares and clears the PostgreSQL test schema, validates response bodies against OpenAPI, and checks that each documented status was observed. The files in `cases/` register the scenarios in this order:
+
+| File | Scenarios |
+| --- | --- |
+| `auth.cases.js` | Login and basic documentation checks |
+| `users-crud.cases.js` | User CRUD flow |
+| `tokens.cases.js` | Invalid tokens, login inputs and list boundaries |
+| `users-validation.cases.js` | User input and permission matrix |
+| `users-edge.cases.js` | Malformed requests, boundaries and disabled actors |
+| `invoices.cases.js` | Invoice CRUD, validation, permissions and failures |
+| `contract.cases.js` | Authorization changes, pagination and data consistency |
+
+To focus on one area while learning, run `npm test -- --testNamePattern="CRUD de facturas"` (or replace the name with another `describe` heading). Run `npm test` afterward: the global OpenAPI response inventory needs every area to execute.
+
 Create a separate PostgreSQL schema for tests and configure your local `.env`:
 
 ```dotenv
