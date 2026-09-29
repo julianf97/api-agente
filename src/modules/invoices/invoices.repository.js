@@ -1,10 +1,26 @@
 import Invoice from '../../models/invoice.js';
 
-export const findInvoices = (options) => Invoice.findAndCountAll({
-  ...options,
-  order: [['id', 'ASC']],
-});
-export const findInvoiceById = (id) => Invoice.findByPk(id);
-export const createInvoice = (data) => Invoice.create(data);
-export const updateInvoice = (invoice, data) => invoice.update(data);
-export const deleteInvoice = (invoice) => invoice.destroy();
+export async function findInvoices({ where, limit, offset }) {
+  return Invoice.findAndCountAll({
+    where,
+    order: [['id', 'ASC']],
+    limit,
+    offset,
+  });
+}
+
+export async function createInvoice(data) {
+  return Invoice.create(data);
+}
+
+export async function findInvoiceById(id) {
+  return Invoice.findByPk(id);
+}
+
+export async function updateInvoice(invoice, data) {
+  return invoice.update(data);
+}
+
+export async function deleteInvoice(invoice) {
+  return invoice.destroy();
+}
