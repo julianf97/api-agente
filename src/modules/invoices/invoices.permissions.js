@@ -1,7 +1,7 @@
 import { USER_ROLES, INVOICE_STATUSES } from '../../constants/constants.js';
 
 export function  isInvoiceManager(actor) {
-  [USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN].includes(actor?.role);
+ return  [USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN].includes(actor?.role);
 }
 
 export function canReadInvoice(actor, invoice) {

@@ -2,7 +2,7 @@ import { INVOICE_STATUSES } from '../../constants/constants.js';
 import { isInvoiceManager } from './invoices.permissions.js';
 
 export function isIssued(status) {
-  [INVOICE_STATUSES.ISSUED, INVOICE_STATUSES.PAID].includes(status);
+  return [INVOICE_STATUSES.ISSUED, INVOICE_STATUSES.PAID].includes(status);
 }
 
 export function toInvoiceCreationData(data, actor) {
