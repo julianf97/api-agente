@@ -11,7 +11,10 @@
     "start": "node src/server.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
     "test:unit": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand tests/unit",
-    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --coverage"
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --coverage",
+    "db:migrate": "node scripts/migrate-db.js up",
+    "db:migrate:undo": "node scripts/migrate-db.js down",
+    "db:migrate:status": "node scripts/migrate-db.js status"
   },
   "engines": {
     "node": ">=18"
@@ -25,7 +28,8 @@
     "pg": "^8.23.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "umzug": "^3.8.3"
   },
   "devDependencies": {
     "ajv": "^8.20.0",

@@ -365,3 +365,6 @@ docker compose up -d --build
 **Julián Finelli**
 
 [GitHub](https://github.com/julianf97)
+## Transición a documents, clients e invoices
+
+La rama de facturación requiere migraciones explícitas antes de iniciar la API con la nueva base. Consultá [docs/migrations.md](docs/migrations.md) para preparar los clientes históricos y ejecutar `npm run db:migrate`. No uses `scripts/bootstrap-db.js` para esta transición. Los endpoints y permisos se adaptarán en el siguiente paso.

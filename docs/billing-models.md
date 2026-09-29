@@ -1,6 +1,6 @@
 # Billing model transition
 
-This branch changes Sequelize models only. Do not bootstrap or deploy against the existing database until migrations are added. Existing invoice endpoints, Swagger, seeds and authorization still describe the previous API and must be adapted in the next phase.
+This branch includes Sequelize models and explicit migrations (see migrations.md). Do not bootstrap or deploy against the existing database before running the documented migration. Existing invoice endpoints, Swagger, seeds and authorization still describe the previous API and must be adapted in the next phase.
 
 ## Model
 
@@ -17,6 +17,6 @@ The issuer is assumed to be an Argentine VAT registered taxpayer. Exports produc
 
 Admin can access all endpoints, including users and clients. Regular can access documents and invoices, but no users endpoints. Superadmin permissions must be removed when routes are adapted. Login remains available for authentication.
 
-## Pending migrations
+## Migration strategy
 
 Rename existing invoices to documents before creating the new invoices table; reconcile historical customer names into clients and backfill clientId before enforcing NOT NULL. Explicitly map legacy document statuses and existing superadmin accounts to the new model. Review incompatible historical data before applying these changes. Sequelize sync must not be used to perform this transition.
