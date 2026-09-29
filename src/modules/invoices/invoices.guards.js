@@ -3,7 +3,6 @@ import { InvoiceNotFoundError } from '../../errors/invoice-not-found-error.js';
 import { isInvoiceManager, canReadInvoice, canEditInvoice } from './invoices.permissions.js';
 
 export function assertCanRead(actor, invoice) {
-  // A regular user must not learn whether another user's invoice exists.
   if (!canReadInvoice(actor, invoice)) throw new InvoiceNotFoundError();
 }
 

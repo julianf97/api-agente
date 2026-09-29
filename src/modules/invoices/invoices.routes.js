@@ -1,9 +1,16 @@
 import { Router } from 'express';
 import {
-  listInvoices, getInvoice, createInvoice, updateInvoice, deleteInvoice,
+  listInvoices,
+  getInvoice,
+  createInvoice,
+  updateInvoice,
+  deleteInvoice,
 } from './invoices.controller.js';
 import {
-  invoiceIdValidation, listInvoicesValidation, createInvoiceValidation, updateInvoiceValidation,
+  invoiceIdValidation,
+  listInvoicesValidation,
+  createInvoiceValidation,
+  updateInvoiceValidation,
 } from './validators/invoice-fields.validator.js';
 import { handleValidation } from '../../middleweres/handle-validation.js';
 import { requireRoles } from '../../middleweres/requiere-roles.js';
@@ -16,4 +23,5 @@ router.post('/', createInvoiceValidation, handleValidation, createInvoice);
 router.patch('/:id', updateInvoiceValidation, handleValidation, updateInvoice);
 router.delete('/:id', requireRoles(USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN),
   invoiceIdValidation, handleValidation, deleteInvoice);
+
 export default router;
