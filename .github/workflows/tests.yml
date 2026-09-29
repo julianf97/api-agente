@@ -55,5 +55,11 @@ jobs:
       - name: Crear esquemas y tablas
         run: node scripts/bootstrap-db.js
 
-      - name: Ejecutar todos los tests
-        run: npm test
+      - name: Ejecutar todos los tests con cobertura
+        run: npm run test:coverage
+
+      - name: Publicar cobertura en Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
