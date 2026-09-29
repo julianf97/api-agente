@@ -2,7 +2,7 @@
 
 API REST de demostración para un sistema de gestión con usuarios y facturas. Está desarrollada con Express, PostgreSQL y Sequelize. Incluye autenticación con JWT, permisos según el rol, documentación interactiva con Swagger y datos de ejemplo para probarla con Docker.
 
-El proyecto sirve como base para explorar cómo un agente de IA podría consultar información y ejecutar acciones sobre una API de gestión. Actualmente implementa la API; no incluye todavía un agente de IA.
+El proyecto sirve como base para explorar cómo un agente de IA podría consultar información y ejecutar acciones sobre una API de gestión.
 
 ## Funcionalidades
 
