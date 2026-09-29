@@ -1,4 +1,5 @@
 import { checkExact } from 'express-validator';
+import { INVOICE_VALIDATION_MESSAGES as MESSAGES } from '../../../constants/constants.js';
 import {
   invoiceAmount, invoiceStatus, invoiceText, invoiceUserId,
 } from './invoice-fields.validator.js';
@@ -6,15 +7,15 @@ import {
 export const createInvoiceValidation = [
   invoiceText('number')
     .exists()
-    .withMessage('number es obligatorio.'),
+    .withMessage(MESSAGES.TEXT.number.REQUIRED),
 
   invoiceText('customerName')
     .exists()
-    .withMessage('customerName es obligatorio.'),
+    .withMessage(MESSAGES.TEXT.customerName.REQUIRED),
 
   invoiceAmount()
     .exists()
-    .withMessage('amount es obligatorio.'),
+    .withMessage(MESSAGES.AMOUNT_REQUIRED),
 
   invoiceUserId().optional(),
   invoiceStatus().optional(),
