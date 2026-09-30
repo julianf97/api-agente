@@ -50,7 +50,7 @@ try {
         throw new Error('La estructura inicial de tests no debe contener datos de ejemplo.');
       }
       const baselineSql = baseline
-        .replace(/SET[^;]*;/g, '')
+        .replace(/^SET [^\r\n]*;\r?$/gm, '')
         .replace(/SELECT pg_catalog\\.set_config[^;]*;/g, '')
         .replaceAll('"api-agente"', quotedSchema);
       await sequelize.transaction(async (setupTransaction) => {
