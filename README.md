@@ -214,10 +214,6 @@ docker compose down
 
 `down` conserva el volumen. `down -v` elimina toda la base; no es necesario para aplicar migraciones.
 
-## Autor
-
-[Julián Finelli](https://github.com/julianf97)
-
 ### Contexto en las consultas de facturación
 
 Todas las respuestas JSON de `/clients`, `/documents` y `/invoices`
