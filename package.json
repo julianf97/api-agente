@@ -17,7 +17,8 @@
     "db:migrate:status": "node scripts/migrate-db.js status",
     "db:migrate:test": "node scripts/migrate-db.js up --test",
     "db:migrate:test:reset": "node scripts/migrate-db.js up --test --reset",
-    "db:migrate:test:status": "node scripts/migrate-db.js status --test"
+    "db:migrate:test:status": "node scripts/migrate-db.js status --test",
+    "db:seed:demo": "node scripts/seed-demo.js"
   },
   "engines": {
     "node": ">=18"

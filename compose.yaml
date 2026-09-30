@@ -37,7 +37,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: ["sh", "-c", "node src/server.js"]
+    command: ["sh", "-c", "node scripts/migrate-db.js up && node scripts/seed-demo.js && node src/server.js"]
 
 volumes:
   postgres_data:

@@ -28,7 +28,7 @@ npm ci
 docker compose up -d db
 ```
 
-Configurá las credenciales y JWT_SECRET en `.env`. Docker crea únicamente las tablas originales vacías cuando el volumen es nuevo; no carga usuarios ni facturas. Para una base existente, consultá [las migraciones](docs/migrations.md).
+Configurá las credenciales y JWT_SECRET en `.env`. PostgreSQL inicializa la estructura original cuando el volumen es nuevo. Al iniciar el servicio `api`, Docker aplica las migraciones y carga la demo automáticamente. Para una base existente, consultá [las migraciones](docs/migrations.md).
 
 Desde PowerShell, para PostgreSQL de Docker:
 
@@ -42,9 +42,9 @@ npm run db:migrate:status
 docker compose up -d --build api
 ```
 
-Una migración aplicada debe figurar en `executed`. Docker no ejecuta automáticamente las migraciones al iniciar la API. PostgreSQL local suele usar el puerto 5432; configurá también las credenciales y DB_NAME correspondientes.
+Una migración aplicada debe figurar en `executed`. Docker Compose aplica automáticamente las migraciones antes de cargar la demo y arrancar la API. PostgreSQL local suele usar el puerto 5432; configurá también las credenciales y DB_NAME correspondientes.
 
-La base vacía requiere crear una cuenta admin con contraseña hasheada antes de iniciar sesión; la API no expone un registro público ni incluye cuentas de prueba automáticas.
+La demo crea cuentas admin y regular. Si ya existen, las reutiliza sin cambiar sus contraseñas; deben estar habilitadas y conservar sus roles. La API no expone registro público.
 
 | Servicio | Dirección predeterminada |
 | --- | --- |
@@ -127,3 +127,58 @@ Después de actualizar el código, ejecutar `npm run db:migrate` contra cada bas
 (local y Docker, seleccionada mediante las variables DB_HOST y DB_PORT).
 Actualizar el schema de tests con `npm run db:migrate:test` en cada base.
 La migración conserva los documentos existentes y no carga datos de ejemplo.
+
+### Demo automática con Docker
+
+Con `.env` configurado:
+
+```powershell
+docker compose up -d --build
+docker compose logs -f api
+```
+
+El servicio `api` espera a PostgreSQL, aplica las migraciones, carga la demo y
+arranca el servidor. La imagen incluye los archivos de migración. Si falla una
+migración o la carga, no inicia la API. Se conserva el volumen existente.
+
+La carga inicial crea cinco clientes y 300 documentos:
+
+| Tipo | Cantidad | Facturable por el agente |
+| --- | ---: | --- |
+| OV | 150 | Sí, mientras esté pending |
+| OC | 38 | No |
+| PR | 38 | No |
+| RE | 37 | No |
+| NC | 37 | No |
+
+Los números comienzan con `DEMO-`. Se asocian al usuario regular y hay clientes
+argentinos y extranjeros para probar facturas A, B y E. No se crean facturas:
+las genera el agente a través de la API. Los listados son paginados.
+
+| Usuario | Email | Contraseña inicial |
+| --- | --- | --- |
+| demo_admin | admin@example.com | AdminDemo123! |
+| demo_regular | regular@example.com | RegularDemo123! |
+
+Las contraseñas se almacenan hasheadas. Estas cuentas son públicas para la demo.
+Reiniciar los contenedores no duplica registros ni modifica documentos ya
+facturados o cancelados. Si un documento de demo se elimina, la próxima carga lo
+recrea. La carga no modifica cuentas o clientes existentes ni elimina registros.
+No se ejecuta en el schema de tests.
+
+### La misma demo en PostgreSQL local
+
+Con `.env` apuntando a PostgreSQL local (`DB_HOST=127.0.0.1`, `DB_PORT=5432`,
+`DB_SCHEMA=api-agente` y tus credenciales):
+
+```powershell
+npm run db:migrate
+npm run db:seed:demo
+npm run dev
+```
+
+La base local debe tener la estructura original o estar ya migrada. El comando
+carga los mismos documentos y puede repetirse. En local, `npm run dev` no carga
+la demo automáticamente. Los ids pueden diferir entre bases; se identifican los
+documentos por sus números, no por ids fijos. Para tests, aplicar por separado
+`npm run db:migrate:test`; el seed de demo nunca se ejecuta sobre tests.

@@ -1,6 +1,6 @@
 # Migración de facturación
 
-Esta migración parte de la base existente con `users` e `invoices`. Hacé un backup y detené la API antes de ejecutarla. No ejecutes `bootstrap-db.js`: usa sync y no implementa la transición. Después de migrar, iniciá la API con los endpoints actualizados.
+Esta migración parte de la base existente con `users` e `invoices`. Hacé un backup y detené la API antes de ejecutarla. `bootstrap-db.js` delega en el migrador; no se usa sync para actualizar la estructura. Después de migrar, iniciá la API con los endpoints actualizados.
 
 ## Base sin registros
 
@@ -55,7 +55,7 @@ npm run db:migrate
 npm run db:migrate:status
 ```
 
-El resto de las credenciales y DB_SCHEMA se toman de `.env`. El puerto debe coincidir con DB_HOST_PORT. El proceso registra migraciones en `SequelizeMeta` dentro del schema, usa transacciones PostgreSQL y un lock para evitar ejecuciones concurrentes. No se ejecuta automáticamente al arrancar la API.
+El resto de las credenciales y DB_SCHEMA se toman de `.env`. El puerto debe coincidir con DB_HOST_PORT. El proceso registra migraciones en `SequelizeMeta` dentro del schema, usa transacciones PostgreSQL y un lock para evitar ejecuciones concurrentes. Docker Compose ejecuta el migrador y el seed de demo antes de arrancar la API. En local las migraciones siguen siendo explícitas.
 
 ## Preservación
 
@@ -93,3 +93,14 @@ El estado debe mostrar la migración en executed y pending vacío. Para aplicar 
 La migración `202609300002-finalize-billing-demo.js` elimina la tabla auxiliar de roles si existe y cambia la referencia de documents.userId a ON DELETE RESTRICT. Es compatible con la eliminación manual anterior de la tabla auxiliar.
 
 En cada conexión (Docker 5433 o local 5432), aplicá `npm run db:migrate` para el schema principal y `npm run db:migrate:test` para tests. Consultá después los estados correspondientes. No es necesario reiniciar los datos de tests para aplicar esta actualización.
+
+## Arranque de la demo
+
+`docker compose up -d --build` aplica las migraciones pendientes y ejecuta
+`db:seed:demo` contra el schema principal antes de iniciar la API. No borra el
+volumen. La carga usa una transacción y un lock propio para evitar cargas
+simultáneas; los documentos existentes no se restablecen al reiniciar.
+
+Para local, con `.env` apuntando al puerto 5432, ejecutar `npm run db:migrate`
+y después `npm run db:seed:demo`. Los schemas de tests se migran por separado
+con `npm run db:migrate:test` y no reciben registros de demo.
