@@ -104,12 +104,27 @@ export const clientSchemas = {
     additionalProperties: false,
     required: ['name', 'taxId', 'address'],
     properties: fields,
+    description: 'country por defecto AR. Para AR, taxCondition es obligatorio y no admite null; para otros países es opcional.',
+    oneOf: [
+      {
+        required: ['taxCondition'],
+        properties: {
+          country: { enum: ['AR'] },
+          taxCondition: { type: 'string', enum: fields.taxCondition.enum.filter((value) => value !== null) },
+        },
+      },
+      {
+        required: ['country'],
+        properties: { country: { not: { enum: ['AR'] } } },
+      },
+    ],
   },
   UpdateClientRequest: {
     type: 'object',
     additionalProperties: false,
     minProperties: 1,
     properties: { ...fields },
+    description: 'Los cambios se combinan con el cliente existente. Si el país resultante es AR, la condición fiscal resultante debe ser válida y no nula.',
   },
   ClientResponse: {
     type: 'object',

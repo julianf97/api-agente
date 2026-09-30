@@ -4,6 +4,8 @@ export const textSchema = {
   minLength: 1,
   maxLength: 255,
   pattern: '\\S',
+  description: 'Se valida la longitud antes de eliminar espacios exteriores; luego no puede quedar vacío.',
+  'x-trim-before-validation': false,
 };
 export const amountSchema = {
   type: 'string',
@@ -15,6 +17,7 @@ export const idParameter = {
   in: 'path',
   required: true,
   schema: idSchema,
+  description: 'Entero positivo sin ceros iniciales, entre 1 y 2147483647.',
 };
 export const paginationParameters = [
   {

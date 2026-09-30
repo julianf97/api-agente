@@ -1,4 +1,5 @@
 import { registerContractCases } from './cases/contract.cases.js';
+import { registerBillingContractCases } from './cases/billing-contract.cases.js';
 import { registerUserEdgeCases } from './cases/users-edge.cases.js';
 import { registerUserValidationCases } from './cases/users-validation.cases.js';
 import 'dotenv/config';
@@ -45,6 +46,7 @@ const observedResponses = new Map();
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
 const responseValidators = new Map();
+const requestValidators = new Map();
 
 function documentedRoute(path, method) {
   const pathname = new URL(path, 'http://localhost').pathname;
@@ -81,7 +83,7 @@ function assertOpenApiResponse(route, status, headers, data) {
     responseValidators.set(
       key,
       ajv.compile({
-        $ref: media.schema.$ref,
+        ...media.schema,
         components: openApiDocument.components,
       }),
     );
@@ -91,6 +93,23 @@ function assertOpenApiResponse(route, status, headers, data) {
     throw new Error(
       `${key}: ${ajv.errorsText(validate.errors)}; body: ${JSON.stringify(data)}`,
     );
+  }
+}
+
+function assertOpenApiRequest(route, body) {
+  const [method, path] = route.split(' ');
+  const schema = openApiDocument.paths[path]?.[method.toLowerCase()]
+    ?.requestBody?.content?.['application/json']?.schema;
+  if (!schema) return;
+  if (!requestValidators.has(route)) {
+    requestValidators.set(route, ajv.compile({
+      ...schema,
+      components: openApiDocument.components,
+    }));
+  }
+  const validate = requestValidators.get(route);
+  if (!validate(body)) {
+    throw new Error(`${route}: API accepted a body rejected by OpenAPI: ${ajv.errorsText(validate.errors)}`);
   }
 }
 
@@ -129,6 +148,7 @@ async function request(
     if (!observedResponses.has(route)) observedResponses.set(route, new Set());
     observedResponses.get(route).add(response.status);
     assertOpenApiResponse(route, response.status, response.headers, data);
+    if (response.ok && body !== undefined) assertOpenApiRequest(route, body);
   }
   return { status: response.status, data, headers: response.headers };
 }
@@ -250,6 +270,7 @@ describe('API HTTP con PostgreSQL', () => {
   registerUserValidationCases(context);
   registerUserEdgeCases(context);
   registerContractCases(context);
+  registerBillingContractCases(context);
 
   test('cada operación documentada tiene al menos un escenario HTTP', () => {
     for (const [path, operations] of Object.entries(openApiDocument.paths)) {

@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from '@jest/globals';
+import { authContext } from '../../../src/modules/auth/support/auth.context.js';
 
 export function registerUserValidationCases(context) {
   const { request, actor, seedUser, userData, password, assertNoPassword } =
@@ -141,6 +142,7 @@ export function registerUserValidationCases(context) {
             expect(result.status).toBe(500);
             expect(result.data).toStrictEqual({
               error: 'Error interno del servidor.',
+              ...(path === '/auth/login' ? { context: authContext } : {}),
             });
           } finally {
             model[method] = original;
