@@ -64,7 +64,7 @@ export async function deleteInvoice(req, res, next) {
   try {
     await removeInvoiceService(req.params.id);
 
-    return res.status(204).send();
+    return res.status(200).json({ message: 'Registro eliminado.' });
   } catch (error) {
     return next(error);
   }

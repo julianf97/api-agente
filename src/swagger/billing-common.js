@@ -83,3 +83,25 @@ export function billingResponses(...statuses) {
     statuses.map((status) => [status, billingErrors[status]]),
   );
 }
+
+export const contextSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['description', 'fields', 'rules'],
+  properties: {
+    description: { type: 'string' },
+    fields: { type: 'object', additionalProperties: { type: 'string' } },
+    rules: { type: 'array', items: { type: 'string' } },
+  },
+};
+
+export function withContext(schema, context) {
+  return {
+    ...schema,
+    required: [...schema.required, 'context'],
+    properties: {
+      ...schema.properties,
+      context: { $ref: `#/components/schemas/${context}` },
+    },
+  };
+}

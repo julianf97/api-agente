@@ -9,6 +9,8 @@ import {
   billingResponses,
   requestBody,
   listSchema,
+  contextSchema,
+  withContext,
 } from './billing-common.js';
 
 const fields = {
@@ -53,7 +55,7 @@ export const clientPaths = {
       requestBody: requestBody('CreateClientRequest'),
       responses: {
         ...billingResponses(400, 401, 409, 500),
-        201: jsonResponse('ClientResponse', 'Registro creado.'),
+        201: jsonResponse('ClientContextResponse', 'Registro creado.'),
       },
     },
   },
@@ -65,7 +67,7 @@ export const clientPaths = {
       parameters: [idParameter],
       responses: {
         ...billingResponses(400, 401, 404, 500),
-        200: jsonResponse('ClientResponse', 'Registro encontrado.'),
+        200: jsonResponse('ClientContextResponse', 'Registro encontrado.'),
       },
     },
     patch: {
@@ -78,7 +80,7 @@ export const clientPaths = {
       requestBody: requestBody('UpdateClientRequest'),
       responses: {
         ...billingResponses(400, 401, 404, 409, 500),
-        200: jsonResponse('ClientResponse', 'Registro actualizado.'),
+        200: jsonResponse('ClientContextResponse', 'Registro actualizado.'),
       },
     },
     delete: {
@@ -90,7 +92,7 @@ export const clientPaths = {
       parameters: [idParameter],
       responses: {
         ...billingResponses(400, 401, 404, 409, 500),
-        204: { description: 'Registro eliminado, sin contenido.' },
+        200: jsonResponse('ClientDeleteResponse', 'Registro eliminado.'),
       },
     },
   },
@@ -129,5 +131,14 @@ export const clientSchemas = {
       updatedAt: dateSchema,
     },
   },
-  ClientListResponse: listSchema('clients', 'ClientResponse'),
+  ClientContext: contextSchema,
+  ClientListResponse: withContext(listSchema('clients', 'ClientResponse'), 'ClientContext'),
 };
+
+clientSchemas.ClientContextResponse = withContext(clientSchemas.ClientResponse, 'ClientContext');
+clientSchemas.ClientDeleteResponse = withContext({
+  type: 'object',
+  additionalProperties: false,
+  required: ['message'],
+  properties: { message: { type: 'string' } },
+}, 'ClientContext');

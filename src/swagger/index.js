@@ -1,3 +1,4 @@
+import { contextSchema, withContext } from './billing-common.js';
 import { clientPaths, clientSchemas } from './clients.js';
 import { documentPaths, documentSchemas } from './documents.js';
 import swaggerUi from 'swagger-ui-express';
@@ -215,4 +216,36 @@ export default function registerSwagger(app) {
       },
     }),
   );
+}
+
+openApiDocument.components.schemas.AuthContext = contextSchema;
+openApiDocument.components.schemas.LoginResponse = withContext(
+  openApiDocument.components.schemas.LoginResponse, 'AuthContext',
+);
+
+for (const [paths, prefix] of [
+  [['/clients', '/clients/{id}'], 'Client'],
+  [['/documents', '/documents/{id}'], 'Document'],
+  [['/invoices', '/invoices/{id}'], 'Invoice'],
+  [['/auth/login'], 'Auth'],
+]) {
+  const schemas = openApiDocument.components.schemas;
+  for (const name of ['ErrorResponse', 'ValidationErrorResponse']) {
+    schemas[`${prefix}${name}`] = withContext(schemas[name], `${prefix}Context`);
+  }
+  for (const path of paths) {
+    for (const operation of Object.values(openApiDocument.paths[path])) {
+      for (const [status, response] of Object.entries(operation.responses)) {
+        if (Number(status) < 400) continue;
+        const name = response.content['application/json'].schema.$ref.split('/').at(-1);
+        // Copy shared error responses to keep each module's context separate.
+        operation.responses[status] = {
+          ...response,
+          content: { 'application/json': {
+            schema: { $ref: `#/components/schemas/${prefix}${name}` },
+          } },
+        };
+      }
+    }
+  }
 }

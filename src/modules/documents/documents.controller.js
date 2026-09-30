@@ -60,7 +60,7 @@ export async function updateDocument(req, res, next) {
 export async function deleteDocument(req, res, next) {
   try {
     await removeService(req.params.id);
-    return res.status(204).send();
+    return res.status(200).json({ message: 'Registro eliminado.' });
   } catch (error) {
     return next(error);
   }

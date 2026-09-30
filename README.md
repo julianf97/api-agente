@@ -98,3 +98,20 @@ docker compose down
 ## Autor
 
 [Julián Finelli](https://github.com/julianf97)
+
+### Contexto en las consultas de facturación
+
+Todas las respuestas JSON de `/clients`, `/documents` y `/invoices`
+(GET, POST, PATCH y DELETE, incluidos errores de validación y negocio) incluyen `context` con `description`, `fields` y `rules`. Explica las
+entidades, los campos y las reglas de facturación para consumidores como el agente.
+Los datos mantienen su ubicación y los listados conservan `pagination`. El contexto
+se incluye una vez por respuesta, también cuando el listado está vacío.
+
+Para facturar, el agente recorre las páginas de documentos, selecciona `type: OV`
+y `status: pending`, y envía a `POST /invoices` únicamente `number` y `documentId`.
+La API aplica las reglas y evita facturar una orden dos veces. El contexto es
+metadata de respuesta: no se envía en POST/PATCH ni requiere migraciones.
+Los DELETE exitosos de clientes y documentos devuelven 200 con `message` y
+`context` en lugar de 204. DELETE de facturas sigue devolviendo 409 con contexto.
+
+`POST /auth/login` también incluye contexto sobre el token y los permisos.

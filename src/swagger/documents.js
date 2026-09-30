@@ -9,6 +9,8 @@ import {
   billingResponses,
   requestBody,
   listSchema,
+  contextSchema,
+  withContext,
 } from './billing-common.js';
 
 const fields = {
@@ -44,7 +46,7 @@ export const documentPaths = {
       requestBody: requestBody('CreateDocumentRequest'),
       responses: {
         ...billingResponses(400, 401, 404, 409, 500),
-        201: jsonResponse('DocumentResponse', 'Registro creado.'),
+        201: jsonResponse('DocumentContextResponse', 'Registro creado.'),
       },
     },
   },
@@ -56,7 +58,7 @@ export const documentPaths = {
       parameters: [idParameter],
       responses: {
         ...billingResponses(400, 401, 404, 500),
-        200: jsonResponse('DocumentResponse', 'Registro encontrado.'),
+        200: jsonResponse('DocumentContextResponse', 'Registro encontrado.'),
       },
     },
     patch: {
@@ -69,7 +71,7 @@ export const documentPaths = {
       requestBody: requestBody('UpdateDocumentRequest'),
       responses: {
         ...billingResponses(400, 401, 404, 409, 500),
-        200: jsonResponse('DocumentResponse', 'Registro actualizado.'),
+        200: jsonResponse('DocumentContextResponse', 'Registro actualizado.'),
       },
     },
     delete: {
@@ -81,7 +83,7 @@ export const documentPaths = {
       parameters: [idParameter],
       responses: {
         ...billingResponses(400, 401, 404, 409, 500),
-        204: { description: 'Registro eliminado, sin contenido.' },
+        200: jsonResponse('DocumentDeleteResponse', 'Registro eliminado.'),
       },
     },
   },
@@ -125,5 +127,14 @@ export const documentSchemas = {
       issuedAt: { ...dateSchema, nullable: true },
     },
   },
-  DocumentListResponse: listSchema('documents', 'DocumentResponse'),
+  DocumentContext: contextSchema,
+  DocumentListResponse: withContext(listSchema('documents', 'DocumentResponse'), 'DocumentContext'),
 };
+
+documentSchemas.DocumentContextResponse = withContext(documentSchemas.DocumentResponse, 'DocumentContext');
+documentSchemas.DocumentDeleteResponse = withContext({
+  type: 'object',
+  additionalProperties: false,
+  required: ['message'],
+  properties: { message: { type: 'string' } },
+}, 'DocumentContext');

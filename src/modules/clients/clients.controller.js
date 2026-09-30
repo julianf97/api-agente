@@ -63,7 +63,7 @@ export async function updateClient(req, res, next) {
 export async function deleteClient(req, res, next) {
   try {
     await removeService(req.params.id, req.auth);
-    return res.status(204).send();
+    return res.status(200).json({ message: 'Registro eliminado.' });
   } catch (error) {
     return next(error);
   }

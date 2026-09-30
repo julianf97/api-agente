@@ -9,6 +9,8 @@ import {
   billingResponses,
   requestBody,
   listSchema,
+  contextSchema,
+  withContext,
 } from './billing-common.js';
 
 const security = [{ bearerAuth: [] }];
@@ -35,7 +37,7 @@ export const invoicePaths = {
       responses: {
         ...billingResponses(400, 401, 404, 409, 500),
         201: jsonResponse(
-          'InvoiceResponse',
+          'InvoiceContextResponse',
           'Factura emitida y orden marcada invoiced, en una transacción.',
         ),
       },
@@ -49,7 +51,7 @@ export const invoicePaths = {
       parameters: [idParameter],
       responses: {
         ...billingResponses(400, 401, 404, 500),
-        200: jsonResponse('InvoiceResponse', 'Factura encontrada.'),
+        200: jsonResponse('InvoiceContextResponse', 'Factura encontrada.'),
       },
     },
     patch: {
@@ -62,7 +64,7 @@ export const invoicePaths = {
       requestBody: requestBody('UpdateInvoiceRequest'),
       responses: {
         ...billingResponses(400, 401, 404, 409, 500),
-        200: jsonResponse('InvoiceResponse', 'Estado actualizado.'),
+        200: jsonResponse('InvoiceContextResponse', 'Estado actualizado.'),
       },
     },
     delete: {
@@ -133,5 +135,14 @@ export const invoiceSchemas = {
       updatedAt: dateSchema,
     },
   },
-  InvoiceListResponse: listSchema('invoices', 'InvoiceResponse'),
+  InvoiceContext: contextSchema,
+  InvoiceListResponse: withContext(listSchema('invoices', 'InvoiceResponse'), 'InvoiceContext'),
 };
+
+invoiceSchemas.InvoiceContextResponse = withContext(invoiceSchemas.InvoiceResponse, 'InvoiceContext');
+invoiceSchemas.InvoiceDeleteResponse = withContext({
+  type: 'object',
+  additionalProperties: false,
+  required: ['message'],
+  properties: { message: { type: 'string' } },
+}, 'InvoiceContext');

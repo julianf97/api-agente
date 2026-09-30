@@ -129,7 +129,7 @@ export function registerInvoiceCases(context) {
             token: regular.token,
           })
         ).status,
-      ).toBe(204);
+      ).toBe(200);
       expect(
         (
           await request(`/clients/${client.id}`, {
@@ -137,7 +137,7 @@ export function registerInvoiceCases(context) {
             token: regular.token,
           })
         ).status,
-      ).toBe(204);
+      ).toBe(200);
     });
     test('regular crea y elimina órdenes de otro usuario', async () => {
       const { regular, client } = await setup();
@@ -155,7 +155,7 @@ export function registerInvoiceCases(context) {
           method: 'DELETE',
           token: regular.token,
         })).status,
-      ).toBe(204);
+      ).toBe(200);
     });
     test('órdenes compartidas, cambios, cancelación y bloqueos', async () => {
       const { admin, regular, client } = await setup();
