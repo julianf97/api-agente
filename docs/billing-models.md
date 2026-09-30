@@ -1,22 +1,24 @@
-# Billing model transition
+# Modelo de facturación de la demo
 
-This branch includes Sequelize models and explicit migrations (see migrations.md). Do not bootstrap or deploy against the existing database before running the documented migration. Existing invoice endpoints, Swagger, seeds and authorization still describe the previous API and must be adapted in the next phase.
+La API usa cuatro entidades: usuarios, clientes, documentos y facturas. Los únicos roles son `admin` y `regular`.
 
-## Model
+## Flujo
 
-- `users`: only `regular` and `admin` are accepted by the model.
-- `clients`: name/legal name, tax identification, tax condition, country (ISO alpha-2) and address. Argentine clients require a tax condition; foreign clients may omit it.
-- `documents`: replaces the old invoice records. `type = OV` is a sales order; `status` is pending, invoiced or cancelled. `clientId` identifies the customer; `userId` identifies the operating user. `isExport` describes the operation, independently of customer residence.
-- `invoices`: a new generated invoice with type A/B/E, a unique `documentId`, client and issuing user. Customer data is copied as a historical snapshot.
+1. Admin crea el cliente con nombre, identificación fiscal, condición fiscal, país y domicilio.
+2. Se crea una orden de venta en `POST /documents`, con `number`, `clientId`, `amount` y, opcionalmente, `isExport`. Empieza como `OV` pendiente.
+3. `POST /invoices` recibe únicamente `number` y `documentId`. El servicio bloquea la orden, consulta el cliente, crea la factura y marca la orden `invoiced` dentro de una transacción.
+4. La restricción única sobre `documentId` y el bloqueo de la orden evitan facturas duplicadas en ejecuciones concurrentes.
 
-Deleting referenced users, clients or documents is restricted. One sales order generates one complete invoice; partial invoicing is outside the demo scope. The invoicing service must enforce client/owner consistency, tax rules, permissions and atomically create the invoice and mark the document invoiced.
+El dueño y el importe de la factura provienen de la orden. Los datos fiscales del cliente se copian a la factura: editar el cliente después no altera el historial. Una factura cancelada no vuelve a habilitar la orden para facturar.
 
-## Rules for the next service phase
+## Reglas de la demo
 
-The issuer is assumed to be an Argentine VAT registered taxpayer. Exports produce E; local sales to VAT registered or monotributo clients produce A; local sales to final consumers or VAT exempt clients produce B. Company/legal name alone does not select a letter. These are demo records, without ARCA fiscal authorization.
+El emisor se considera responsable inscripto argentino. Una exportación produce E; una venta local a un responsable inscripto o monotributista produce A; a consumidor final o exento produce B. Una venta local requiere un cliente argentino. Son registros de demostración sin autorización fiscal de ARCA.
 
-Admin can access all endpoints, including users and clients. Regular can access documents and invoices, but no users endpoints. Superadmin permissions must be removed when routes are adapted. Login remains available for authentication.
+Admin administra usuarios y clientes y consulta todas las órdenes/facturas. Regular no accede a usuarios ni clientes y solo consulta y opera sus propias órdenes/facturas. Solo admin puede asignar el dueño de una orden y marcar una factura pagada o cancelada.
 
-## Migration strategy
+Las órdenes solo se editan o eliminan mientras están pendientes. Las facturas emitidas conservan origen, importe y datos fiscales; no se eliminan. `DELETE /invoices/:id` devuelve 409 para conservar esa regla y `PATCH` permite cancelar. Los usuarios y clientes relacionados con documentos o facturas no se eliminan.
 
-Rename existing invoices to documents before creating the new invoices table; reconcile historical customer names into clients and backfill clientId before enforcing NOT NULL. Explicitly map legacy document statuses and existing superadmin accounts to the new model. Review incompatible historical data before applying these changes. Sequelize sync must not be used to perform this transition.
+## Estructura del código
+
+Los módulos siguen el mismo esquema del proyecto: controller, service, repository en la raíz; presentación, preparación de datos y reglas en `support`; validadores en `validators`. Los modelos Sequelize permanecen en `src/models` y Swagger en `src/swagger`. No hay un framework genérico de CRUD.

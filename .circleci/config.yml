@@ -35,7 +35,7 @@ jobs:
 
       - run:
           name: Crear esquemas y tablas
-          command: node scripts/bootstrap-db.js
+          command: npm run db:migrate:test:reset
 
       - run:
           name: Ejecutar todos los tests

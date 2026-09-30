@@ -14,13 +14,23 @@ import {
   deleteInvoice,
 } from './invoices.controller.js';
 
-
 const router = Router();
 router.get('/', listInvoicesValidation, handleValidation, listInvoices);
 router.get('/:id', invoiceIdValidation, handleValidation, getInvoice);
 router.post('/', createInvoiceValidation, handleValidation, createInvoice);
-router.patch('/:id', updateInvoiceValidation, handleValidation, updateInvoice);
-router.delete('/:id', requireRoles(USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN),
-  invoiceIdValidation, handleValidation, deleteInvoice);
+router.patch(
+  '/:id',
+  requireRoles(USER_ROLES.ADMIN),
+  updateInvoiceValidation,
+  handleValidation,
+  updateInvoice,
+);
+router.delete(
+  '/:id',
+  requireRoles(USER_ROLES.ADMIN),
+  invoiceIdValidation,
+  handleValidation,
+  deleteInvoice,
+);
 
 export default router;

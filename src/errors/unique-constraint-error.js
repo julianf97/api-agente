@@ -39,16 +39,8 @@ export function handleUniqueConstraintError(error, res) {
     return true;
   }
 
-  console.error(USER_ERROR_MESSAGES.UNIQUE_CONSTRAINT_FAILED, {
-    constraint,
-    detail,
-    fields,
-    paths,
-  });
-
-  res.status(500).json({
-    error: USER_ERROR_MESSAGES.UNIQUE_CONSTRAINT_FAILED,
-  });
-
+  res
+    .status(409)
+    .json({ error: 'Ya existe un registro con esos datos únicos.' });
   return true;
 }

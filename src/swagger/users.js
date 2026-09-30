@@ -1,19 +1,15 @@
 import { USER_ROLES } from '../constants/constants.js';
 import {
-  USERNAME_MAX_LENGTH, EMAIL_MAX_LENGTH, PASSWORD_MAX_UTF8_BYTES,
-  USER_ID_MAX, USERS_PAGE_LIMIT_MAX,
+  USERNAME_MAX_LENGTH,
+  EMAIL_MAX_LENGTH,
+  PASSWORD_MAX_UTF8_BYTES,
+  USER_ID_MAX,
+  USERS_PAGE_LIMIT_MAX,
 } from '../constants/validation-limits.js';
 
-const userRoles = [
-  USER_ROLES.REGULAR,
-  USER_ROLES.ADMIN,
-  USER_ROLES.SUPERADMIN,
-];
+const userRoles = [USER_ROLES.REGULAR, USER_ROLES.ADMIN];
 
-const assignableRoles = [
-  USER_ROLES.REGULAR,
-  USER_ROLES.ADMIN,
-];
+const assignableRoles = [USER_ROLES.REGULAR, USER_ROLES.ADMIN];
 
 const userIdParameter = {
   name: 'id',
@@ -48,8 +44,7 @@ export const userPaths = {
     get: {
       tags: ['Users'],
       summary: 'Listar usuarios',
-      description:
-        'Disponible para regular, admin y superadmin. Incluye usuarios habilitados y deshabilitados.',
+      description: 'Solo admin. Permite administrar usuarios admin y regular.',
       security: [{ bearerAuth: [] }],
       parameters: [
         {
@@ -75,6 +70,7 @@ export const userPaths = {
         },
       ],
       responses: {
+        403: { description: 'Se requiere admin.', ...errorResponse },
         200: {
           description: 'Listado paginado de usuarios.',
           content: {
@@ -86,8 +82,7 @@ export const userPaths = {
           },
         },
         400: {
-          description:
-            'Los parámetros de paginación no son válidos.',
+          description: 'Los parámetros de paginación no son válidos.',
           ...validationErrorResponse,
         },
         401: {
@@ -105,8 +100,7 @@ export const userPaths = {
     post: {
       tags: ['Users'],
       summary: 'Crear un usuario',
-      description:
-        'Admin puede crear usuarios regular. Superadmin puede crear usuarios regular o admin. No se puede crear otro superadmin. La contraseña se guarda como hash; el usuario se crea habilitado y el rol predeterminado es regular.',
+      description: 'Solo admin. Permite administrar usuarios admin y regular.',
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -119,6 +113,7 @@ export const userPaths = {
         },
       },
       responses: {
+        403: { description: 'Se requiere admin.', ...errorResponse },
         201: {
           description: 'Usuario creado.',
           content: {
@@ -144,8 +139,7 @@ export const userPaths = {
           ...errorResponse,
         },
         409: {
-          description:
-            'El username o el email ya está registrado.',
+          description: 'El username o el email ya está registrado.',
           ...errorResponse,
         },
         500: {
@@ -160,11 +154,11 @@ export const userPaths = {
     get: {
       tags: ['Users'],
       summary: 'Obtener un usuario por ID',
-      description:
-        'Disponible para regular, admin y superadmin. También permite consultar usuarios deshabilitados.',
+      description: 'Solo admin. Permite administrar usuarios admin y regular.',
       security: [{ bearerAuth: [] }],
       parameters: [userIdParameter],
       responses: {
+        403: { description: 'Se requiere admin.', ...errorResponse },
         200: {
           description: 'Usuario encontrado.',
           content: {
@@ -198,8 +192,7 @@ export const userPaths = {
     patch: {
       tags: ['Users'],
       summary: 'Editar los datos de un usuario',
-      description:
-        'Admin solo puede editar usuarios regular. Superadmin puede editar usuarios regular y admin, además de sus propios datos. Esta operación no cambia el rol. Permite modificar el estado enabled, excepto deshabilitar la cuenta superadmin.',
+      description: 'Solo admin. Permite administrar usuarios admin y regular.',
       security: [{ bearerAuth: [] }],
       parameters: [userIdParameter],
       requestBody: {
@@ -213,6 +206,7 @@ export const userPaths = {
         },
       },
       responses: {
+        403: { description: 'Se requiere admin.', ...errorResponse },
         200: {
           description: 'Usuario actualizado.',
           content: {
@@ -224,8 +218,7 @@ export const userPaths = {
           },
         },
         400: {
-          description:
-            'El ID o los datos enviados no son válidos.',
+          description: 'El ID o los datos enviados no son válidos.',
           ...validationErrorResponse,
         },
         401: {
@@ -235,7 +228,7 @@ export const userPaths = {
         },
         403: {
           description:
-            'El solicitante no puede editar al usuario indicado o se intentó deshabilitar la cuenta superadmin.',
+            'Solo admin. Permite administrar usuarios admin y regular.',
           ...errorResponse,
         },
         404: {
@@ -243,8 +236,7 @@ export const userPaths = {
           ...errorResponse,
         },
         409: {
-          description:
-            'El username o el email ya está registrado.',
+          description: 'El username o el email ya está registrado.',
           ...errorResponse,
         },
         500: {
@@ -257,14 +249,13 @@ export const userPaths = {
     delete: {
       tags: ['Users'],
       summary: 'Eliminar un usuario',
-      description:
-        'Admin solo puede eliminar usuarios regular. Superadmin puede eliminar usuarios regular y admin. La cuenta superadmin no se puede eliminar. Un usuario con registros relacionados, como facturas, no se puede eliminar.',
+      description: 'Solo admin. Permite administrar usuarios admin y regular.',
       security: [{ bearerAuth: [] }],
       parameters: [userIdParameter],
       responses: {
+        403: { description: 'Se requiere admin.', ...errorResponse },
         204: {
-          description:
-            'Usuario eliminado. La respuesta no contiene un body.',
+          description: 'Usuario eliminado. La respuesta no contiene un body.',
         },
         400: {
           description: 'El ID no es válido.',
@@ -276,8 +267,7 @@ export const userPaths = {
           ...errorResponse,
         },
         403: {
-          description:
-            'El solicitante no puede eliminar al usuario indicado.',
+          description: 'El solicitante no puede eliminar al usuario indicado.',
           ...errorResponse,
         },
         404: {
@@ -301,8 +291,7 @@ export const userPaths = {
     patch: {
       tags: ['Users'],
       summary: 'Cambiar el rol de un usuario',
-      description:
-        'Exclusivo de superadmin. Permite cambiar entre regular y admin. No permite modificar el rol de la cuenta superadmin ni asignar superadmin a otra cuenta.',
+      description: 'Solo admin. Permite administrar usuarios admin y regular.',
       security: [{ bearerAuth: [] }],
       parameters: [userIdParameter],
       requestBody: {
@@ -316,6 +305,7 @@ export const userPaths = {
         },
       },
       responses: {
+        403: { description: 'Se requiere admin.', ...errorResponse },
         200: {
           description: 'Rol actualizado.',
           content: {
@@ -327,8 +317,7 @@ export const userPaths = {
           },
         },
         400: {
-          description:
-            'El ID o el rol enviado no son válidos.',
+          description: 'El ID o el rol enviado no son válidos.',
           ...validationErrorResponse,
         },
         401: {
@@ -338,7 +327,7 @@ export const userPaths = {
         },
         403: {
           description:
-            'Se requiere superadmin o se intentó cambiar el rol de la cuenta superadmin.',
+            'Solo admin. Permite administrar usuarios admin y regular.',
           ...errorResponse,
         },
         404: {
@@ -355,188 +344,188 @@ export const userPaths = {
 };
 
 export const userSchemas = {
-    CreateUserRequest: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['username', 'email', 'password'],
-      properties: {
-        username: {
-          type: 'string',
-          minLength: 1,
-          pattern: '\\S',
-          description: 'Se eliminan espacios exteriores antes de validar: 1 a 255 caracteres y al menos uno no blanco.',
-          'x-trim-before-validation': true,
-          'x-maxLengthAfterTrim': USERNAME_MAX_LENGTH,
-          example: 'newuser',
-        },
-        email: {
-          type: 'string',
-          pattern: '\\S',
-          description: 'Se eliminan espacios exteriores, se valida con express-validator isEmail y se limita a 255 caracteres después del recorte.',
-          'x-trim-before-validation': true,
-          'x-email-validator': 'express-validator isEmail',
-          'x-maxLengthAfterTrim': EMAIL_MAX_LENGTH,
-          example: 'newuser@example.com',
-        },
-        password: {
-          type: 'string',
-          minLength: 1,
-          pattern: '\\S',
-          format: 'password',
-          writeOnly: true,
-          description: 'Debe contener un carácter no blanco y ocupar como máximo 72 bytes en UTF-8 (límite de bcrypt).',
-          'x-maxUtf8Bytes': PASSWORD_MAX_UTF8_BYTES,
-          example: 'contraseña123',
-        },
-        role: {
-          type: 'string',
-          enum: assignableRoles,
-          default: USER_ROLES.REGULAR,
-          example: USER_ROLES.REGULAR,
-        },
+  CreateUserRequest: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['username', 'email', 'password'],
+    properties: {
+      username: {
+        type: 'string',
+        minLength: 1,
+        pattern: '\\S',
+        description:
+          'Se eliminan espacios exteriores antes de validar: 1 a 255 caracteres y al menos uno no blanco.',
+        'x-trim-before-validation': true,
+        'x-maxLengthAfterTrim': USERNAME_MAX_LENGTH,
+        example: 'newuser',
+      },
+      email: {
+        type: 'string',
+        pattern: '\\S',
+        description:
+          'Se eliminan espacios exteriores, se valida con express-validator isEmail y se limita a 255 caracteres después del recorte.',
+        'x-trim-before-validation': true,
+        'x-email-validator': 'express-validator isEmail',
+        'x-maxLengthAfterTrim': EMAIL_MAX_LENGTH,
+        example: 'newuser@example.com',
+      },
+      password: {
+        type: 'string',
+        minLength: 1,
+        pattern: '\\S',
+        format: 'password',
+        writeOnly: true,
+        description:
+          'Debe contener un carácter no blanco y ocupar como máximo 72 bytes en UTF-8 (límite de bcrypt).',
+        'x-maxUtf8Bytes': PASSWORD_MAX_UTF8_BYTES,
+        example: 'contraseña123',
+      },
+      role: {
+        type: 'string',
+        enum: assignableRoles,
+        default: USER_ROLES.REGULAR,
+        example: USER_ROLES.REGULAR,
       },
     },
+  },
 
-    UpdateUserRequest: {
-      type: 'object',
-      additionalProperties: false,
-      minProperties: 1,
-      properties: {
-        username: {
-          type: 'string',
-          minLength: 1,
-          pattern: '\\S',
-          description: 'Se eliminan espacios exteriores antes de validar: 1 a 255 caracteres y al menos uno no blanco.',
-          'x-trim-before-validation': true,
-          'x-maxLengthAfterTrim': USERNAME_MAX_LENGTH,
-          example: 'usuario_actualizado',
-        },
-        email: {
-          type: 'string',
-          pattern: '\\S',
-          description: 'Se eliminan espacios exteriores, se valida con express-validator isEmail y se limita a 255 caracteres después del recorte.',
-          'x-trim-before-validation': true,
-          'x-email-validator': 'express-validator isEmail',
-          'x-maxLengthAfterTrim': EMAIL_MAX_LENGTH,
-          example: 'usuario.actualizado@example.com',
-        },
-        password: {
-          type: 'string',
-          minLength: 1,
-          pattern: '\\S',
-          format: 'password',
-          writeOnly: true,
-          description: 'Debe contener un carácter no blanco y ocupar como máximo 72 bytes en UTF-8 (límite de bcrypt).',
-          'x-maxUtf8Bytes': PASSWORD_MAX_UTF8_BYTES,
-          example: 'nuevaContraseña123',
-        },
-        enabled: {
-          type: 'boolean',
-          description:
-            'Indica si el usuario puede iniciar sesión.',
-          example: true,
-        },
+  UpdateUserRequest: {
+    type: 'object',
+    additionalProperties: false,
+    minProperties: 1,
+    properties: {
+      username: {
+        type: 'string',
+        minLength: 1,
+        pattern: '\\S',
+        description:
+          'Se eliminan espacios exteriores antes de validar: 1 a 255 caracteres y al menos uno no blanco.',
+        'x-trim-before-validation': true,
+        'x-maxLengthAfterTrim': USERNAME_MAX_LENGTH,
+        example: 'usuario_actualizado',
+      },
+      email: {
+        type: 'string',
+        pattern: '\\S',
+        description:
+          'Se eliminan espacios exteriores, se valida con express-validator isEmail y se limita a 255 caracteres después del recorte.',
+        'x-trim-before-validation': true,
+        'x-email-validator': 'express-validator isEmail',
+        'x-maxLengthAfterTrim': EMAIL_MAX_LENGTH,
+        example: 'usuario.actualizado@example.com',
+      },
+      password: {
+        type: 'string',
+        minLength: 1,
+        pattern: '\\S',
+        format: 'password',
+        writeOnly: true,
+        description:
+          'Debe contener un carácter no blanco y ocupar como máximo 72 bytes en UTF-8 (límite de bcrypt).',
+        'x-maxUtf8Bytes': PASSWORD_MAX_UTF8_BYTES,
+        example: 'nuevaContraseña123',
+      },
+      enabled: {
+        type: 'boolean',
+        description: 'Indica si el usuario puede iniciar sesión.',
+        example: true,
       },
     },
+  },
 
-    ChangeUserRoleRequest: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['role'],
-      properties: {
-        role: {
-          type: 'string',
-          enum: assignableRoles,
-          example: USER_ROLES.ADMIN,
-        },
+  ChangeUserRoleRequest: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['role'],
+    properties: {
+      role: {
+        type: 'string',
+        enum: assignableRoles,
+        example: USER_ROLES.ADMIN,
       },
     },
+  },
 
-    UserResponse: {
-      type: 'object',
-      additionalProperties: false,
-      required: [
-        'id',
-        'username',
-        'email',
-        'role',
-        'enabled',
-        'createdAt',
-        'updatedAt',
-      ],
-      properties: {
-        id: {
-          type: 'integer',
-          example: 1,
-        },
-        username: {
-          type: 'string',
-          example: 'newuser',
-        },
-        email: {
-          type: 'string',
-          format: 'email',
-          example: 'newuser@example.com',
-        },
-        role: {
-          type: 'string',
-          enum: userRoles,
-          example: USER_ROLES.REGULAR,
-        },
-        enabled: {
-          type: 'boolean',
-          example: true,
-        },
-        createdAt: {
-          type: 'string',
-          format: 'date-time',
-        },
-        updatedAt: {
-          type: 'string',
-          format: 'date-time',
-        },
+  UserResponse: {
+    type: 'object',
+    additionalProperties: false,
+    required: [
+      'id',
+      'username',
+      'email',
+      'role',
+      'enabled',
+      'createdAt',
+      'updatedAt',
+    ],
+    properties: {
+      id: {
+        type: 'integer',
+        example: 1,
+      },
+      username: {
+        type: 'string',
+        example: 'newuser',
+      },
+      email: {
+        type: 'string',
+        format: 'email',
+        example: 'newuser@example.com',
+      },
+      role: {
+        type: 'string',
+        enum: userRoles,
+        example: USER_ROLES.REGULAR,
+      },
+      enabled: {
+        type: 'boolean',
+        example: true,
+      },
+      createdAt: {
+        type: 'string',
+        format: 'date-time',
+      },
+      updatedAt: {
+        type: 'string',
+        format: 'date-time',
       },
     },
+  },
 
-    UserListResponse: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['users', 'pagination'],
-      properties: {
-        users: {
-          type: 'array',
-          items: {
-            $ref: '#/components/schemas/UserResponse',
+  UserListResponse: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['users', 'pagination'],
+    properties: {
+      users: {
+        type: 'array',
+        items: {
+          $ref: '#/components/schemas/UserResponse',
+        },
+      },
+      pagination: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['total', 'page', 'limit', 'totalPages'],
+        properties: {
+          total: {
+            type: 'integer',
+            example: 34,
+          },
+          page: {
+            type: 'integer',
+            example: 1,
+          },
+          limit: {
+            type: 'integer',
+            example: 20,
+          },
+          totalPages: {
+            type: 'integer',
+            example: 2,
           },
         },
-        pagination: {
-          type: 'object',
-          additionalProperties: false,
-          required: [
-            'total',
-            'page',
-            'limit',
-            'totalPages',
-          ],
-          properties: {
-            total: {
-              type: 'integer',
-              example: 34,
-            },
-            page: {
-              type: 'integer',
-              example: 1,
-            },
-            limit: {
-              type: 'integer',
-              example: 20,
-            },
-            totalPages: {
-              type: 'integer',
-              example: 2,
-            },
-          },
-        },
       },
     },
+  },
 };

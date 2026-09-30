@@ -1,5 +1,10 @@
+import { clientPaths, clientSchemas } from '../../src/swagger/clients.js';
+import { documentPaths, documentSchemas } from '../../src/swagger/documents.js';
 import { describe, expect, test } from '@jest/globals';
-import { openApiDocument, sortSwaggerOperations } from '../../src/swagger/index.js';
+import {
+  openApiDocument,
+  sortSwaggerOperations,
+} from '../../src/swagger/index.js';
 import { userPaths, userSchemas } from '../../src/swagger/users.js';
 import { invoicePaths, invoiceSchemas } from '../../src/swagger/invoices.js';
 
@@ -9,9 +14,16 @@ describe('Organización de Swagger', () => {
       '/auth/login',
       ...Object.keys(userPaths),
       ...Object.keys(invoicePaths),
+      ...Object.keys(clientPaths),
+      ...Object.keys(documentPaths),
     ]);
 
-    for (const [name, schema] of Object.entries({ ...userSchemas, ...invoiceSchemas })) {
+    for (const [name, schema] of Object.entries({
+      ...userSchemas,
+      ...invoiceSchemas,
+      ...clientSchemas,
+      ...documentSchemas,
+    })) {
       expect(openApiDocument.components.schemas[name]).toBe(schema);
     }
   });
@@ -30,9 +42,11 @@ describe('Organización de Swagger', () => {
         operation('get', `/${moduleName}`),
       ];
 
-      expect(operations.sort(sortSwaggerOperations).map((entry) => [
-        entry.get('method'), entry.get('path'),
-      ])).toEqual([
+      expect(
+        operations
+          .sort(sortSwaggerOperations)
+          .map((entry) => [entry.get('method'), entry.get('path')]),
+      ).toEqual([
         ['get', `/${moduleName}`],
         ['get', `/${moduleName}/{id}`],
         ['post', `/${moduleName}`],

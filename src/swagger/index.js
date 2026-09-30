@@ -1,3 +1,5 @@
+import { clientPaths, clientSchemas } from './clients.js';
+import { documentPaths, documentSchemas } from './documents.js';
 import swaggerUi from 'swagger-ui-express';
 import { userPaths, userSchemas } from './users.js';
 import { invoicePaths, invoiceSchemas } from './invoices.js';
@@ -61,8 +63,7 @@ export const openApiDocument = {
             ...validationErrorResponse,
           },
           401: {
-            description:
-              'Credenciales inválidas o usuario deshabilitado.',
+            description: 'Credenciales inválidas o usuario deshabilitado.',
             ...errorResponse,
           },
           500: {
@@ -75,6 +76,8 @@ export const openApiDocument = {
 
     ...userPaths,
     ...invoicePaths,
+    ...clientPaths,
+    ...documentPaths,
   },
 
   components: {
@@ -125,7 +128,8 @@ export const openApiDocument = {
           email: {
             type: 'string',
             pattern: '\\S',
-            description: 'Se eliminan espacios exteriores y luego se valida con express-validator isEmail; no puede quedar vacío.',
+            description:
+              'Se eliminan espacios exteriores y luego se valida con express-validator isEmail; no puede quedar vacío.',
             'x-trim-before-validation': true,
             'x-email-validator': 'express-validator isEmail',
             example: 'admin-user@gmail.com',
@@ -146,8 +150,7 @@ export const openApiDocument = {
         properties: {
           accessToken: {
             type: 'string',
-            description:
-              'JWT para enviar en el encabezado Authorization.',
+            description: 'JWT para enviar en el encabezado Authorization.',
           },
           tokenType: {
             type: 'string',
@@ -163,6 +166,19 @@ export const openApiDocument = {
 
       ...userSchemas,
       ...invoiceSchemas,
+      ...clientSchemas,
+      ...documentSchemas,
+      Pagination: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['total', 'page', 'limit', 'totalPages'],
+        properties: {
+          total: { type: 'integer' },
+          page: { type: 'integer' },
+          limit: { type: 'integer' },
+          totalPages: { type: 'integer' },
+        },
+      },
     },
   },
 };
@@ -183,14 +199,20 @@ export function sortSwaggerOperations(first, second) {
     return 6;
   };
 
-  return position(first) - position(second)
-    || first.get('path').localeCompare(second.get('path'));
+  return (
+    position(first) - position(second) ||
+    first.get('path').localeCompare(second.get('path'))
+  );
 }
 
 export default function registerSwagger(app) {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocument, {
-    swaggerOptions: {
-      operationsSorter: sortSwaggerOperations,
-    },
-  }));
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(openApiDocument, {
+      swaggerOptions: {
+        operationsSorter: sortSwaggerOperations,
+      },
+    }),
+  );
 }

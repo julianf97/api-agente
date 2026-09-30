@@ -1,3 +1,5 @@
+import { ForeignKeyConstraintError } from 'sequelize';
+import { BillingError, handleBillingError } from '../errors/billing-error.js';
 import { REQUEST_ERROR_MESSAGES } from '../constants/constants.js';
 import { handleAuthorizationError } from '../errors/authorization-error.js';
 import { handleMalformedJsonError } from '../errors/malformed-json-error.js';
@@ -7,6 +9,22 @@ import { handleInvoiceNotFoundError } from '../errors/invoice-not-found-error.js
 import { handleInvoiceNumberConflict } from '../errors/invoice-number-conflict-error.js';
 
 export function errorHandler(error, _req, res, _next) {
+  if (error instanceof BillingError && error.status === 400) {
+    res
+      .status(400)
+      .json({ errors: [{ field: 'taxCondition', message: error.message }] });
+    return;
+  }
+  if (handleBillingError(error, res)) return;
+  if (error instanceof ForeignKeyConstraintError) {
+    res
+      .status(409)
+      .json({
+        error:
+          'El registro tiene referencias relacionadas o una referencia inválida.',
+      });
+    return;
+  }
   if (handleAuthorizationError(error, res)) {
     return;
   }

@@ -1,6 +1,6 @@
 # Migración de facturación
 
-Esta migración parte de la base existente con `users` e `invoices`. Hacé un backup y detené la API antes de ejecutarla. No ejecutes `bootstrap-db.js`: usa sync y no implementa la transición. La API todavía necesita adaptar rutas, permisos y Swagger antes de volver a usarse.
+Esta migración parte de la base existente con `users` e `invoices`. Hacé un backup y detené la API antes de ejecutarla. No ejecutes `bootstrap-db.js`: usa sync y no implementa la transición. Después de migrar, iniciá la API con los endpoints actualizados.
 
 ## Base sin registros
 
@@ -22,7 +22,7 @@ npm run db:migrate
 npm run db:migrate:status
 ```
 
-No necesitás JSON de clientes cuando no hay facturas anteriores. No ejecutes `docker compose down -v` para esta transición; conserva las tablas existentes. No vuelvas a iniciar la API hasta adaptar los endpoints a los nuevos modelos.
+No necesitás JSON de clientes cuando no hay facturas anteriores. No ejecutes `docker compose down -v` para esta transición; conserva las tablas existentes. Después de migrar podés iniciar la API actualizada.
 
 ## Clientes históricos
 
@@ -63,7 +63,7 @@ El resto de las credenciales y DB_SCHEMA se toman de `.env`. El puerto debe coin
 - Se mantienen `customerName` y `legacyStatus` en documents para preservar el origen y permitir reversión.
 - Los borradores pasan a pending; cancelados a cancelled; emitidos/pagados a invoiced. Estos últimos son históricos y no producen otra factura nueva.
 - Todos los documentos históricos se clasifican como OV local (`isExport=false`); revisar esa clasificación antes de habilitar el agente.
-- Las cuentas superadmin pasan a admin; sus roles originales se guardan en billing_legacy_roles.
+- Las cuentas históricas superadmin pasan a admin. La segunda migración elimina billing_legacy_roles; la demo descarta la recuperación de esos roles.
 - El archivo puede asociar varios nombres históricos a una misma identificación fiscal y país. Los datos de esas entradas deben ser coherentes.
 
 ## Reversión
@@ -72,7 +72,7 @@ El resto de las credenciales y DB_SCHEMA se toman de `.env`. El puerto debe coin
 npm run db:migrate:undo
 ```
 
-Restaura el nombre invoices, los estados históricos y los roles originales. Se bloquea si existen nuevas facturas o documentos sin datos históricos, para impedir perderlos. Los clientes agregados después de la migración también deben reconciliarse antes de revertir.
+Revierte una migración por ejecución. Revertir la segunda recrea la tabla auxiliar vacía; los roles descartados no se recuperan. Revertir después la primera restaura el nombre invoices y los estados históricos. Se bloquea si existen nuevas facturas o documentos sin datos históricos, para impedir perderlos. Los clientes agregados después de la migración también deben reconciliarse antes de revertir.
 
 ## Schema de tests
 
@@ -85,4 +85,11 @@ npm run db:migrate:test:reset
 npm run db:migrate:test:status
 ```
 
-El estado debe mostrar la migración en executed y pending vacío. Para aplicar futuras migraciones sin reiniciar tests usá `npm run db:migrate:test`. La preparación del schema no adapta automáticamente los fixtures, endpoints ni los tests existentes.
+El estado debe mostrar la migración en executed y pending vacío. Para aplicar futuras migraciones sin reiniciar tests usá `npm run db:migrate:test`. Los tests adaptados utilizan las tablas migradas y no modifican la estructura con sync.
+
+
+## Actualización de una base ya migrada
+
+La migración `202609300002-finalize-billing-demo.js` elimina la tabla auxiliar de roles si existe y cambia la referencia de documents.userId a ON DELETE RESTRICT. Es compatible con la eliminación manual anterior de la tabla auxiliar.
+
+En cada conexión (Docker 5433 o local 5432), aplicá `npm run db:migrate` para el schema principal y `npm run db:migrate:test` para tests. Consultá después los estados correspondientes. No es necesario reiniciar los datos de tests para aplicar esta actualización.

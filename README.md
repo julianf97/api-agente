@@ -1,351 +1,99 @@
-# API Agent
+# API Agent — Demo Sicorp
 
-API REST de demostración para gestionar usuarios y facturas, desarrollada con Express, PostgreSQL y Sequelize.
-
-Incluye autenticación con JWT, permisos según el rol, documentación interactiva con Swagger, tests automatizados y ejecución con Docker.
-
-El proyecto sirve como base para demostrar cómo un agente de IA podría consultar información y ejecutar acciones sobre una API de gestión. Actualmente implementa la API; la integración del agente corresponde a una siguiente etapa.
-
-## Funcionalidades
-
-- Autenticación mediante correo electrónico y contraseña.
-- Administración de usuarios con tres roles: `regular`, `admin` y `superadmin`.
-- Creación, consulta, edición y eliminación de facturas según los permisos.
-- Listados paginados de usuarios y facturas.
-- Contraseñas almacenadas como hashes con bcrypt.
-- Validación de entradas y manejo centralizado de errores.
-- Documentación OpenAPI disponible en Swagger UI.
-- Tests unitarios y de integración con PostgreSQL.
-- Ejecución del proyecto mediante Docker Compose.
-
-## Roles y permisos
-
-### Usuarios
-
-| Acción | `regular` | `admin` | `superadmin` |
-| --- | --- | --- | --- |
-| Listar y consultar usuarios | Sí | Sí | Sí |
-| Crear usuarios | No | Solo `regular` | `regular` y `admin` |
-| Editar usuarios | No | Solo `regular` | `regular`, `admin` y sus propios datos |
-| Eliminar usuarios | No | Solo `regular` | `regular` y `admin` |
-| Cambiar roles | No | No | Entre `regular` y `admin` |
-
-Todos los roles pueden consultar usuarios habilitados y deshabilitados.
-
-La cuenta `superadmin` no puede eliminarse, deshabilitarse ni cambiar de rol. Tampoco se pueden crear nuevas cuentas `superadmin` desde la API.
-
-Un usuario con facturas vinculadas no puede eliminarse.
-
-### Facturas
-
-| Acción | `regular` | `admin` | `superadmin` |
-| --- | --- | --- | --- |
-| Listar y consultar facturas | Solo las propias | Todas | Todas |
-| Crear facturas | Solo borradores propios | Para cualquier usuario | Para cualquier usuario |
-| Editar facturas | Solo sus propios borradores | Todas | Todas |
-| Cambiar propietario o estado | No | Sí | Sí |
-| Eliminar facturas | No | Sí | Sí |
-
-Los estados disponibles son:
-
-- `draft`: borrador.
-- `issued`: emitida.
-- `paid`: pagada.
-- `cancelled`: cancelada.
-
-El usuario `regular` puede editar el número, el cliente y el importe de sus propios borradores.
-
-Cuando una factura pasa por primera vez a `issued` o `paid`, la API asigna automáticamente su fecha de emisión.
-
-## Badges
+API REST con Express, PostgreSQL y Sequelize para demostrar automatización de un ERP. Gestiona usuarios, clientes, órdenes de venta y facturas. La integración del agente corresponde a una etapa posterior.
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/julianf97/api-agente/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/julianf97/api-agente/tree/main) [![Coverage Status](https://coveralls.io/repos/github/julianf97/api-agente/badge.svg?branch=main)](https://coveralls.io/github/julianf97/api-agente?branch=main)
 
-CircleCI ejecuta los tests automáticamente. GitHub Actions ejecuta la suite con cobertura y publica el reporte en Coveralls.
+## Roles
 
-## Tecnologías
+| Operación | admin | regular |
+| --- | --- | --- |
+| Administrar usuarios y clientes | Sí | No |
+| Consultar documentos y facturas | Todos | Propios |
+| Crear órdenes de venta | Cualquier dueño | Propias |
+| Editar/eliminar órdenes pendientes | Todas | Propias |
+| Facturar una orden pendiente | Todas | Propias |
+| Marcar factura pagada o cancelada | Sí | No |
 
-| Tecnología | Uso |
-| --- | --- |
-| Node.js 22 | Entorno de ejecución en Docker y CI |
-| Express | API REST |
-| PostgreSQL 15 | Base de datos |
-| Sequelize | Modelos y acceso a datos |
-| JWT | Autenticación |
-| bcrypt | Hash de contraseñas |
-| express-validator | Validación de entradas |
-| Swagger UI y OpenAPI | Documentación interactiva |
-| Jest | Tests unitarios, integración y cobertura |
-| Docker Compose | Ejecución de la API y PostgreSQL |
-| CircleCI y GitHub Actions | Integración continua |
-| Coveralls | Publicación de cobertura |
+Las facturas conservan sus datos fiscales históricos y no se eliminan. Una orden genera una sola factura completa. Consultá [las reglas de facturación](docs/billing-models.md).
 
-## Requisitos
+## Preparar la base y ejecutar
 
-Para levantar y probar la API:
-
-- Git.
-- Docker con Docker Compose.
-- Docker Desktop iniciado, si usás Windows.
-
-No necesitás instalar Node.js ni PostgreSQL en tu computadora para ejecutar la API con Docker.
-
-Para ejecutar los tests localmente, también necesitás Node.js y npm. Se recomienda Node.js 22 para utilizar la misma versión principal que Docker y CI.
-
-## Levantar el proyecto con Docker
-
-### 1. Clonar el repositorio
-
-```sh
-git clone https://github.com/julianf97/api-agente.git
-cd api-agente
-```
-
-### 2. Crear el archivo de configuración
-
-En PowerShell:
+Se recomienda Node.js 22. Docker Desktop debe estar iniciado en Windows.
 
 ```powershell
 Copy-Item .env.example .env
-```
-
-En Linux o macOS:
-
-```sh
-cp .env.example .env
-```
-
-Editá `.env` y reemplazá los valores de `DB_PASSWORD` y `JWT_SECRET` por valores propios.
-
-```dotenv
-DB_PASSWORD=tu-password-local
-JWT_SECRET=tu-secreto-largo-y-aleatorio
-```
-
-El archivo `.env` está excluido del control de versiones.
-
-### 3. Construir y levantar los contenedores
-
-```sh
-docker compose up -d --build
-```
-
-Comprobá su estado:
-
-```sh
-docker compose ps
-```
-
-### 4. Acceder a la API
-
-| Servicio | Dirección |
-| --- | --- |
-| API | http://localhost:3000 |
-| Swagger | http://localhost:3000/api-docs |
-| PostgreSQL desde tu computadora | `localhost:5433` |
-
-Los puertos indicados son los predeterminados. Podés cambiarlos mediante `HOST_PORT` y `DB_HOST_PORT` en `.env`.
-
-### Inicialización sin datos de ejemplo
-
-En el primer arranque, con un volumen vacío, PostgreSQL ejecuta:
-
-```text
-docker/init/01-seed.sql
-```
-
-Este archivo crea la estructura original de `users` e `invoices` con tablas vacías. No carga usuarios ni facturas de ejemplo.
-
-En esta rama, ejecutá las migraciones explícitas antes de iniciar la API. Consultá [docs/migrations.md](docs/migrations.md). No uses `scripts/bootstrap-db.js` para esta transición.
-
-El proyecto utiliza dos esquemas dentro de la misma base de datos:
-
-| Esquema | Propósito |
-| --- | --- |
-| `api-agente` | Datos de la API y registros de demostración |
-| `api-agente-test` | Datos utilizados por los tests de integración |
-
-Los registros se conservan en el volumen `postgres_data`. Reiniciar los contenedores no vuelve a importar el SQL ni restablece los registros modificados.
-
-## Swagger
-
-La documentación interactiva está disponible en:
-
-**http://localhost:3000/api-docs**
-
-Desde Swagger podés consultar:
-
-- Los endpoints disponibles.
-- Los campos y validaciones de cada petición.
-- Los esquemas de las respuestas.
-- Los códigos de estado documentados.
-- Los requisitos de autenticación y permisos.
-
-### Probar una ruta protegida
-
-1. Abrí `POST /auth/login`.
-2. Pulsá **Try it out**.
-3. Ingresá las credenciales de una cuenta de prueba.
-4. Pulsá **Execute**.
-5. Copiá el token devuelto por la API.
-6. Pulsá **Authorize** e ingresá el token JWT.
-7. Ejecutá las rutas de usuarios o facturas.
-
-Para probar otro rol, reemplazá el token por el obtenido al iniciar sesión con la cuenta correspondiente.
-
-## Cuentas de prueba
-
-Docker no crea cuentas de prueba automáticamente. Las credenciales del seed anterior ya no corresponden a una base recién inicializada.
-
-## Endpoints
-
-### Autenticación
-
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| `POST` | `/auth/login` | Iniciar sesión y obtener un JWT |
-
-### Usuarios
-
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| `GET` | `/users` | Listar usuarios con paginación |
-| `POST` | `/users` | Crear un usuario |
-| `GET` | `/users/:id` | Consultar un usuario |
-| `PATCH` | `/users/:id` | Editar los datos de un usuario |
-| `PATCH` | `/users/:id/role` | Cambiar el rol de un usuario |
-| `DELETE` | `/users/:id` | Eliminar un usuario |
-
-### Facturas
-
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| `GET` | `/invoices` | Listar las facturas visibles para el usuario |
-| `POST` | `/invoices` | Crear una factura |
-| `GET` | `/invoices/:id` | Consultar una factura |
-| `PATCH` | `/invoices/:id` | Editar una factura |
-| `DELETE` | `/invoices/:id` | Eliminar una factura |
-
-Las rutas de usuarios y facturas requieren autenticación:
-
-```http
-Authorization: Bearer <token>
-```
-
-Los listados admiten `page` y `limit`. Por defecto, se utiliza la página `1` con `20` registros; el límite máximo es `100`.
-
-El importe de una factura debe enviarse como una cadena decimal, por ejemplo `"125.00"`.
-
-Consultá Swagger para ver el contrato completo de cada operación.
-
-## Tests
-
-El proyecto incluye:
-
-- **Tests unitarios:** permisos, reglas de negocio, configuración y manejo de errores.
-- **Tests de integración:** peticiones HTTP contra la aplicación y operaciones con PostgreSQL.
-- **Comprobaciones del contrato OpenAPI:** validación de respuestas y ejercicio de los códigos documentados.
-
-### Instalar dependencias
-
-Desde la raíz del proyecto:
-
-```sh
 npm ci
-```
-
-### Ejecutar los tests unitarios
-
-No necesitan PostgreSQL:
-
-```sh
-npm run test:unit
-```
-
-### Ejecutar todos los tests
-
-Primero levantá los servicios:
-
-```sh
-docker compose up -d --build
-```
-
-En PowerShell, configurá la conexión al PostgreSQL de Docker:
-
-```powershell
-$env:DB_HOST='127.0.0.1'
-$env:DB_PORT='5433'
-npm test
-```
-
-En Linux o macOS:
-
-```sh
-DB_HOST=127.0.0.1 DB_PORT=5433 npm test
-```
-
-Si modificaste `DB_HOST_PORT`, reemplazá `5433` por el puerto configurado.
-
-### Generar el reporte de cobertura
-
-Después de configurar la conexión a PostgreSQL:
-
-```sh
-npm run test:coverage
-```
-
-El comando muestra la cobertura en la terminal y genera el reporte en `coverage/`, incluido `coverage/lcov.info`.
-
-Los tests de integración utilizan `api-agente-test` y limpian sus tablas durante la ejecución. No guardes datos que quieras conservar en ese esquema.
-
-### Integración continua
-
-- **CircleCI:** ejecuta los tests con Node.js y PostgreSQL.
-- **GitHub Actions:** ejecuta los tests con cobertura y envía el reporte a Coveralls.
-- **Coveralls:** muestra la cobertura y su evolución.
-
-## Comandos útiles de Docker
-
-Consultar el estado de los contenedores:
-
-```sh
-docker compose ps
-```
-
-Ver los logs de la API:
-
-```sh
-docker compose logs -f api
-```
-
-Ver los logs de PostgreSQL:
-
-```sh
-docker compose logs -f db
-```
-
-Detener los servicios conservando los datos:
-
-```sh
-docker compose down
-```
-
-### Reinicializar el volumen
-
-Solo para descartar deliberadamente toda la base y recrear la estructura original vacía:
-
-```sh
-docker compose down -v
 docker compose up -d db
 ```
 
-> `docker compose down -v` elimina el volumen y todos los registros guardados. El siguiente arranque crea las tablas originales vacías; después hay que ejecutar las migraciones explícitas.
+Configurá las credenciales y JWT_SECRET en `.env`. Docker crea únicamente las tablas originales vacías cuando el volumen es nuevo; no carga usuarios ni facturas. Para una base existente, consultá [las migraciones](docs/migrations.md).
+
+Desde PowerShell, para PostgreSQL de Docker:
+
+```powershell
+$env:DB_HOST = '127.0.0.1'
+$env:DB_PORT = '5433'
+$env:DB_SCHEMA = 'api-agente'
+$env:DB_USE_TEST_SCHEMA = 'false'
+npm run db:migrate
+npm run db:migrate:status
+docker compose up -d --build api
+```
+
+Una migración aplicada debe figurar en `executed`. Docker no ejecuta automáticamente las migraciones al iniciar la API. PostgreSQL local suele usar el puerto 5432; configurá también las credenciales y DB_NAME correspondientes.
+
+La base vacía requiere crear una cuenta admin con contraseña hasheada antes de iniciar sesión; la API no expone un registro público ni incluye cuentas de prueba automáticas.
+
+| Servicio | Dirección predeterminada |
+| --- | --- |
+| API | http://localhost:3000 |
+| Swagger | http://localhost:3000/api-docs |
+| PostgreSQL Docker | localhost:5433 |
+
+## Endpoints
+
+Todas las rutas salvo login requieren `Authorization: Bearer <token>`.
+
+| Módulo | Rutas |
+| --- | --- |
+| Auth | POST /auth/login |
+| Users | GET/POST /users; GET/PATCH/DELETE /users/:id; PATCH /users/:id/role |
+| Clients | GET/POST /clients; GET/PATCH/DELETE /clients/:id |
+| Documents | GET/POST /documents; GET/PATCH/DELETE /documents/:id |
+| Invoices | GET/POST /invoices; GET/PATCH /invoices/:id; DELETE devuelve 409 |
+
+Los listados usan `page` y `limit`: valores por defecto 1 y 20, máximo 100 por página. Los importes se envían como texto decimal positivo, por ejemplo `"125.00"`. Swagger documenta los cuerpos y respuestas.
+
+## Tests
+
+Prepará el esquema aislado de tests en la conexión elegida:
+
+```powershell
+npm run db:migrate:test:reset
+npm run db:migrate:test:status
+npm test
+npm run test:coverage
+```
+
+`db:migrate:test:reset` elimina y recrea solamente DB_TEST_SCHEMA, que debe ser distinto de DB_SCHEMA y terminar en `-test`. Los tests limpian las cuatro tablas de ese esquema. No guardes datos que quieras conservar allí. Los cambios de estructura se aplican mediante migraciones; no se usa sync para actualizar las tablas.
+
+```powershell
+npm run test:unit
+```
+
+Los unitarios no requieren PostgreSQL. La integración valida respuestas HTTP contra OpenAPI, permisos, referencias, selección A/B/E, snapshots y concurrencia/rollback al facturar. CircleCI y GitHub Actions preparan la base de tests con las mismas migraciones antes de ejecutar la suite.
+
+## Comandos Docker
+
+```powershell
+docker compose ps
+docker compose logs -f api
+docker compose down
+```
+
+`down` conserva el volumen. `down -v` elimina toda la base; no es necesario para aplicar migraciones.
 
 ## Autor
 
-**Julián Finelli**
-
-[GitHub](https://github.com/julianf97)
-## Transición a documents, clients e invoices
-
-La rama de facturación requiere migraciones explícitas antes de iniciar la API con la nueva base. Consultá [docs/migrations.md](docs/migrations.md) para preparar los clientes históricos y ejecutar `npm run db:migrate`. No uses `scripts/bootstrap-db.js` para esta transición. Los endpoints y permisos se adaptarán en el siguiente paso.
+[Julián Finelli](https://github.com/julianf97)

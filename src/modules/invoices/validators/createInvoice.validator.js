@@ -1,24 +1,14 @@
-import { checkExact } from 'express-validator';
-import { INVOICE_VALIDATION_MESSAGES as MESSAGES } from '../../../constants/constants.js';
-import {
-  invoiceAmount, invoiceStatus, invoiceText, invoiceUserId,
-} from './invoice-fields.validator.js';
+import { body, checkExact } from 'express-validator';
+import { invoiceText } from './invoice-fields.validator.js';
+import { USER_ID_MAX } from '../../../constants/validation-limits.js';
 
 export const createInvoiceValidation = [
-  invoiceText('number')
-    .exists()
-    .withMessage(MESSAGES.TEXT.number.REQUIRED),
-
-  invoiceText('customerName')
-    .exists()
-    .withMessage(MESSAGES.TEXT.customerName.REQUIRED),
-
-  invoiceAmount()
-    .exists()
-    .withMessage(MESSAGES.AMOUNT_REQUIRED),
-
-  invoiceUserId().optional(),
-  invoiceStatus().optional(),
-
+  invoiceText('number'),
+  body('documentId')
+    .custom(Number.isInteger)
+    .withMessage('documentId debe ser un entero JSON.')
+    .bail()
+    .isInt({ min: 1, max: USER_ID_MAX })
+    .withMessage('documentId no es válido.'),
   checkExact([], { locations: ['body'] }),
 ];

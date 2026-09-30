@@ -2,17 +2,33 @@ import { describe, expect, test } from '@jest/globals';
 import { UniqueConstraintError, ForeignKeyConstraintError } from 'sequelize';
 import { handleUniqueConstraintError } from '../../src/errors/unique-constraint-error.js';
 import { handleMalformedJsonError } from '../../src/errors/malformed-json-error.js';
-import { handleAuthorizationError, AuthorizationError } from '../../src/errors/authorization-error.js';
-import { handleUserNotFoundError, UserNotFoundError } from '../../src/errors/user-not-found-error.js';
+import {
+  handleAuthorizationError,
+  AuthorizationError,
+} from '../../src/errors/authorization-error.js';
+import {
+  handleUserNotFoundError,
+  UserNotFoundError,
+} from '../../src/errors/user-not-found-error.js';
 import { handleDeleteUserError } from '../../src/middleweres/handle-delete-user-error.js';
 import { errorHandler } from '../../src/middleweres/error-handler.js';
-import { USER_ERROR_MESSAGES as U, REQUEST_ERROR_MESSAGES as Q } from '../../src/constants/constants.js';
+import {
+  USER_ERROR_MESSAGES as U,
+  REQUEST_ERROR_MESSAGES as Q,
+} from '../../src/constants/constants.js';
 
 function response() {
   return {
-    statusCode: null, body: null,
-    status(code) { this.statusCode = code; return this; },
-    json(body) { this.body = body; return this; },
+    statusCode: null,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
   };
 }
 
@@ -51,18 +67,28 @@ describe('Manejo de errores', () => {
     }
   });
 
-  test('unknown unique constraint returns a controlled 500, and unrelated errors pass through', () => {
+  test('unknown unique constraint returns a controlled 409, and unrelated errors pass through', () => {
     const res = response();
     const previous = console.error;
     let logged;
-    console.error = (...args) => { logged = args; };
+    console.error = (...args) => {
+      logged = args;
+    };
     try {
-      expect(handleUniqueConstraintError(unique({ parent: { constraint: 'other_key' } }), res)).toBe(true);
-    } finally { console.error = previous; }
-    expect(res.statusCode).toBe(500);
-    expect(res.body.error).toBe(U.UNIQUE_CONSTRAINT_FAILED);
-    expect(logged[0]).toBe(U.UNIQUE_CONSTRAINT_FAILED);
-    expect(handleUniqueConstraintError(new Error('other'), response())).toBe(false);
+      expect(
+        handleUniqueConstraintError(
+          unique({ parent: { constraint: 'other_key' } }),
+          res,
+        ),
+      ).toBe(true);
+    } finally {
+      console.error = previous;
+    }
+    expect(res.statusCode).toBe(409);
+    expect(res.body.error).toMatch(/únicos/);
+    expect(handleUniqueConstraintError(new Error('other'), response())).toBe(
+      false,
+    );
   });
 
   test('malformed JSON and domain errors map to their expected statuses only', () => {
@@ -72,26 +98,41 @@ describe('Manejo de errores', () => {
     const bad = response();
     expect(handleMalformedJsonError(malformed, bad)).toBe(true);
     expect(bad.statusCode).toBe(400);
-    expect(bad.body.errors).toStrictEqual([{ field: 'body', message: Q.MALFORMED_JSON }]);
-    for (const invalid of [new Error('bad'), Object.assign(new SyntaxError('bad'), { status: 500 })]) {
+    expect(bad.body.errors).toStrictEqual([
+      { field: 'body', message: Q.MALFORMED_JSON },
+    ]);
+    for (const invalid of [
+      new Error('bad'),
+      Object.assign(new SyntaxError('bad'), { status: 500 }),
+    ]) {
       expect(handleMalformedJsonError(invalid, response())).toBe(false);
     }
     const forbidden = response();
-    expect(handleAuthorizationError(new AuthorizationError('no'), forbidden)).toBe(true);
+    expect(
+      handleAuthorizationError(new AuthorizationError('no'), forbidden),
+    ).toBe(true);
     expect(forbidden.body).toStrictEqual({ error: 'no' });
     expect(forbidden.statusCode).toBe(403);
     expect(handleAuthorizationError(new Error('no'), response())).toBe(false);
     const missing = response();
-    expect(handleUserNotFoundError(new UserNotFoundError(), missing)).toBe(true);
+    expect(handleUserNotFoundError(new UserNotFoundError(), missing)).toBe(
+      true,
+    );
     expect(missing.statusCode).toBe(404);
-    expect(handleUserNotFoundError(new Error('missing'), response())).toBe(false);
+    expect(handleUserNotFoundError(new Error('missing'), response())).toBe(
+      false,
+    );
   });
 
   test('delete foreign key errors map to 409 and unrelated errors continue', () => {
     const res = response();
     let continued;
-    const next = (error) => { continued = error; };
-    const constraint = new ForeignKeyConstraintError({ parent: new Error('fk') });
+    const next = (error) => {
+      continued = error;
+    };
+    const constraint = new ForeignKeyConstraintError({
+      parent: new Error('fk'),
+    });
     handleDeleteUserError(constraint, {}, res, next);
     expect(res.statusCode).toBe(409);
     expect(res.body.error).toBe(U.HAS_RELATED_RECORDS);
@@ -113,7 +154,9 @@ describe('Manejo de errores', () => {
     }
     const previous = console.error;
     let logged;
-    console.error = (error) => { logged = error; };
+    console.error = (error) => {
+      logged = error;
+    };
     try {
       const res = response();
       const unexpected = new Error('private database detail');
@@ -121,6 +164,8 @@ describe('Manejo de errores', () => {
       expect(logged).toBe(unexpected);
       expect(res.statusCode).toBe(500);
       expect(res.body).toStrictEqual({ error: Q.INTERNAL_SERVER_ERROR });
-    } finally { console.error = previous; }
+    } finally {
+      console.error = previous;
+    }
   });
 });

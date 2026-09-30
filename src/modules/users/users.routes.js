@@ -19,32 +19,23 @@ import { requireRoles } from '../../middleweres/requiere-roles.js';
 import { USER_ROLES } from '../../constants/constants.js';
 
 const router = Router();
+router.use(requireRoles(USER_ROLES.ADMIN));
 
 router.post(
   '/',
-  requireRoles(USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN),
+  requireRoles(USER_ROLES.ADMIN),
   createUserValidation,
   handleValidation,
   createUser,
 );
 
-router.get(
-  '/',
-  listUsersValidation,
-  handleValidation,
-  listUsers,
-);
+router.get('/', listUsersValidation, handleValidation, listUsers);
 
-router.get(
-  '/:id',
-  userIdValidation,
-  handleValidation,
-  getUserById,
-);
+router.get('/:id', userIdValidation, handleValidation, getUserById);
 
 router.patch(
   '/:id/role',
-  requireRoles(USER_ROLES.SUPERADMIN),
+  requireRoles(USER_ROLES.ADMIN),
   changeUserRoleValidation,
   handleValidation,
   changeUserRole,
@@ -52,7 +43,7 @@ router.patch(
 
 router.patch(
   '/:id',
-  requireRoles(USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN),
+  requireRoles(USER_ROLES.ADMIN),
   updateUserValidation,
   handleValidation,
   updateUser,
@@ -60,7 +51,7 @@ router.patch(
 
 router.delete(
   '/:id',
-  requireRoles(USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN),
+  requireRoles(USER_ROLES.ADMIN),
   deleteUserValidation,
   handleValidation,
   deleteUser,

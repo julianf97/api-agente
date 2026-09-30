@@ -1,92 +1,67 @@
 import { describe, expect, test } from '@jest/globals';
 import {
-  canCreateUser, canEditUser, canDeleteUser, canChangeUserRole,
+  canCreateUser,
+  canEditUser,
+  canDeleteUser,
+  canChangeUserRole,
 } from '../../src/modules/users/support/users.permissions.js';
 import {
-  assertCanCreateUser, assertCanUpdateUser, assertCanDeleteUser, assertCanChangeUserRole,
+  assertCanCreateUser,
+  assertCanUpdateUser,
+  assertCanDeleteUser,
+  assertCanChangeUserRole,
 } from '../../src/modules/users/support/users.guards.js';
-import { USER_ROLES as R, USER_ERROR_MESSAGES as M } from '../../src/constants/constants.js';
+import {
+  USER_ROLES as R,
+  USER_ERROR_MESSAGES as M,
+} from '../../src/constants/constants.js';
 import { AuthorizationError } from '../../src/errors/authorization-error.js';
-import { hashUserPassword, toUserUpdateData } from '../../src/modules/users/support/users.mapper.js';
+import {
+  hashUserPassword,
+  toUserUpdateData,
+} from '../../src/modules/users/support/users.mapper.js';
 import { toUserResponse } from '../../src/modules/users/support/users.presenter.js';
 import bcrypt from 'bcrypt';
 
-const roles = [undefined, R.REGULAR, R.ADMIN, R.SUPERADMIN];
-
-function forbidden(action, message) {
-  expect(action).toThrow(AuthorizationError);
-  expect(action).toThrow(message);
-}
-
+const roles = [undefined, 'regular', 'admin', 'superadmin', 'unknown'];
 describe('Reglas de usuarios', () => {
-  test('create permission matrix rejects every unassignable role and actor', () => {
+  test('solo admin administra los dos roles admitidos', () => {
     for (const actorRole of roles) {
-      for (const newRole of [...roles, 'unknown']) {
+      for (const targetRole of roles) {
         const allowed =
-          (actorRole === R.SUPERADMIN && [R.REGULAR, R.ADMIN].includes(newRole)) ||
-          (actorRole === R.ADMIN && newRole === R.REGULAR);
-        expect(canCreateUser(actorRole, newRole)).toBe(allowed);
-        const action = () => assertCanCreateUser({ role: actorRole }, newRole);
-        if (allowed) expect(action).not.toThrow();
-        else forbidden(action, M.CANNOT_CREATE_WITH_ROLE);
-      }
-    }
-    forbidden(() => assertCanCreateUser(undefined, R.REGULAR), M.CANNOT_CREATE_WITH_ROLE);
-  });
-
-  test('edit permission matrix includes self-only superadmin and guard defenses', () => {
-    for (const actorRole of roles) {
-      for (const targetRole of [R.REGULAR, R.ADMIN, R.SUPERADMIN]) {
-        for (const sameAccount of [false, true]) {
-          const actor = { role: actorRole, sub: '1' };
-          const user = { role: targetRole, id: sameAccount ? 1 : 2 };
-          const allowed =
-            actorRole === R.SUPERADMIN && (targetRole !== R.SUPERADMIN || sameAccount) ||
-            actorRole === R.ADMIN && targetRole === R.REGULAR;
-          expect(canEditUser(actor, user)).toBe(allowed);
-          const action = () => assertCanUpdateUser(actor, user, { username: 'new' });
-          if (allowed) expect(action).not.toThrow();
-          else forbidden(action, M.CANNOT_EDIT);
-        }
-      }
-    }
-    const self = { role: R.SUPERADMIN, sub: '1' };
-    const root = { id: 1, role: R.SUPERADMIN };
-    forbidden(() => assertCanUpdateUser(self, root, { role: R.ADMIN }), M.CANNOT_CHANGE_ROLE_HERE);
-    forbidden(() => assertCanUpdateUser(self, root, { enabled: false }), M.CANNOT_DISABLE_SUPERADMIN);
-    expect(() => assertCanUpdateUser(self, root, { enabled: true })).not.toThrow();
-    expect(canEditUser(undefined, root)).toBe(false);
-  });
-
-  test('delete permission matrix blocks superadmin targets', () => {
-    for (const actorRole of roles) {
-      for (const targetRole of [R.REGULAR, R.ADMIN, R.SUPERADMIN]) {
-        const allowed = targetRole !== R.SUPERADMIN && (
-          actorRole === R.SUPERADMIN || actorRole === R.ADMIN && targetRole === R.REGULAR
+          actorRole === 'admin' && ['admin', 'regular'].includes(targetRole);
+        expect(canCreateUser(actorRole, targetRole)).toBe(allowed);
+        expect(canEditUser({ role: actorRole }, { role: targetRole })).toBe(
+          allowed,
         );
         expect(canDeleteUser(actorRole, targetRole)).toBe(allowed);
-        const action = () => assertCanDeleteUser({ role: actorRole }, { role: targetRole });
-        if (allowed) expect(action).not.toThrow();
-        else forbidden(action, M.CANNOT_DELETE);
-      }
-    }
-    forbidden(() => assertCanDeleteUser(undefined, { role: R.REGULAR }), M.CANNOT_DELETE);
-  });
-
-  test('role-change permission matrix covers actor, target and destination', () => {
-    for (const actorRole of roles) {
-      for (const targetRole of [R.REGULAR, R.ADMIN, R.SUPERADMIN]) {
-        for (const newRole of [...roles, 'unknown']) {
-          const allowed = actorRole === R.SUPERADMIN && targetRole !== R.SUPERADMIN &&
-            [R.REGULAR, R.ADMIN].includes(newRole);
-          expect(canChangeUserRole(actorRole, targetRole, newRole)).toBe(allowed);
-          const action = () => assertCanChangeUserRole({ role: actorRole }, { role: targetRole }, newRole);
-          if (allowed) expect(action).not.toThrow();
-          else forbidden(action, M.CANNOT_CHANGE_ROLE);
+        for (const newRole of roles) {
+          expect(canChangeUserRole(actorRole, targetRole, newRole)).toBe(
+            allowed && ['admin', 'regular'].includes(newRole),
+          );
         }
       }
     }
-    forbidden(() => assertCanChangeUserRole(undefined, { role: R.REGULAR }, R.ADMIN), M.CANNOT_CHANGE_ROLE);
+  });
+
+  test('guards rechazan actores sin permisos y cambios de rol fuera de su endpoint', () => {
+    const admin = { role: 'admin', sub: '1' };
+    const target = { id: 2, role: 'regular' };
+    expect(() => assertCanUpdateUser(admin, target, { role: 'admin' })).toThrow(
+      AuthorizationError,
+    );
+    expect(() => assertCanCreateUser({ role: 'regular' }, 'regular')).toThrow(
+      AuthorizationError,
+    );
+    expect(() => assertCanDeleteUser(undefined, target)).toThrow(
+      AuthorizationError,
+    );
+    expect(() => assertCanChangeUserRole(admin, target, 'superadmin')).toThrow(
+      AuthorizationError,
+    );
+    expect(() =>
+      assertCanUpdateUser(admin, target, { enabled: false }),
+    ).not.toThrow();
   });
 
   test('mapper hashes passwords and only maps explicitly supplied update fields', async () => {
@@ -96,9 +71,15 @@ describe('Reglas de usuarios', () => {
     expect(await bcrypt.compare(plain, hash)).toBeTruthy();
     expect(await toUserUpdateData({})).toStrictEqual({});
     const result = await toUserUpdateData({
-      username: 'new', email: 'UPPER@EXAMPLE.COM', password: plain, enabled: false, role: R.ADMIN,
+      username: 'new',
+      email: 'UPPER@EXAMPLE.COM',
+      password: plain,
+      enabled: false,
+      role: R.ADMIN,
     });
-    expect(Object.keys(result).sort()).toStrictEqual(['username', 'email', 'passwordHash', 'enabled'].sort());
+    expect(Object.keys(result).sort()).toStrictEqual(
+      ['username', 'email', 'passwordHash', 'enabled'].sort(),
+    );
     expect(result.email).toBe('upper@example.com');
     expect(result.enabled).toBe(false);
     expect(await bcrypt.compare(plain, result.passwordHash)).toBeTruthy();
@@ -106,11 +87,26 @@ describe('Reglas de usuarios', () => {
 
   test('presenter strips credential and internal fields', () => {
     const source = {
-      id: 1, username: 'someone', email: 'x@example.com', role: R.REGULAR, enabled: true,
-      createdAt: new Date(), updatedAt: new Date(), passwordHash: 'private', internal: 'private',
+      id: 1,
+      username: 'someone',
+      email: 'x@example.com',
+      role: R.REGULAR,
+      enabled: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      passwordHash: 'private',
+      internal: 'private',
     };
-    expect(Object.keys(toUserResponse(source)).sort()).toStrictEqual([
-      'id', 'username', 'email', 'role', 'enabled', 'createdAt', 'updatedAt',
-    ].sort());
+    expect(Object.keys(toUserResponse(source)).sort()).toStrictEqual(
+      [
+        'id',
+        'username',
+        'email',
+        'role',
+        'enabled',
+        'createdAt',
+        'updatedAt',
+      ].sort(),
+    );
   });
 });

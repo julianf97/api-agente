@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Sequelize } from 'sequelize';
+import { Sequelize, QueryTypes } from 'sequelize';
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -16,9 +16,27 @@ async function initializeDatabase() {
   await sequelize.authenticate();
 
   if (process.env.DB_USE_TEST_SCHEMA === 'true') {
-    // Registra todos los modelos antes de crear las tablas del schema de pruebas.
+    // Registra los modelos y exige que las migraciones de tests ya estén aplicadas.
     await import('../models/index.js');
-    await sequelize.sync();
+    const quoted = sequelize
+      .getQueryInterface()
+      .quoteIdentifier(process.env.DB_TEST_SCHEMA);
+    const tables = await sequelize.query(
+      'SELECT table_name AS name FROM information_schema.tables WHERE table_schema = :schema',
+      {
+        replacements: { schema: process.env.DB_TEST_SCHEMA },
+        type: QueryTypes.SELECT,
+      },
+    );
+    if (
+      !['users', 'clients', 'documents', 'invoices'].every((name) =>
+        tables.some((table) => table.name === name),
+      )
+    ) {
+      throw new Error(
+        `Faltan tablas en ${quoted}; ejecutá npm run db:migrate:test:reset.`,
+      );
+    }
   }
 }
 

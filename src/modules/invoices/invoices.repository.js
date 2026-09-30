@@ -1,6 +1,7 @@
-import Invoice from '../../models/invoice.js';
+import { Invoice, Document, Client } from '../../models/index.js';
+import { sequelize } from '../../db/index.js';
 
-export async function findInvoices({ where, limit, offset }) {
+export function findInvoices({ where, limit, offset }) {
   return Invoice.findAndCountAll({
     where,
     order: [['id', 'ASC']],
@@ -9,18 +10,37 @@ export async function findInvoices({ where, limit, offset }) {
   });
 }
 
-export async function createInvoice(data) {
-  return Invoice.create(data);
+export function findInvoiceById(id, transaction) {
+  return Invoice.findByPk(
+    id,
+    transaction ? { transaction, lock: transaction.LOCK.UPDATE } : {},
+  );
 }
 
-export async function findInvoiceById(id) {
-  return Invoice.findByPk(id);
+export function inInvoiceTransaction(action) {
+  return sequelize.transaction(action);
 }
 
-export async function updateInvoice(invoice, data) {
-  return invoice.update(data);
+export function findDocumentForInvoice(id, transaction) {
+  return Document.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
 }
 
-export async function deleteInvoice(invoice) {
-  return invoice.destroy();
+export function findInvoiceClient(id, transaction) {
+  return Client.findByPk(id, { transaction, lock: transaction.LOCK.SHARE });
+}
+
+export function createInvoice(data, transaction) {
+  return Invoice.create(data, { transaction });
+}
+
+export function updateInvoice(invoice, data, transaction) {
+  return invoice.update(data, { transaction });
+}
+
+export function markDocumentInvoiced(document, transaction) {
+  return document.update({ status: 'invoiced' }, { transaction });
+}
+
+export function deleteInvoice(invoice, transaction) {
+  return invoice.destroy({ transaction });
 }

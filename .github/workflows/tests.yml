@@ -53,7 +53,7 @@ jobs:
         run: npm ci
 
       - name: Crear esquemas y tablas
-        run: node scripts/bootstrap-db.js
+        run: npm run db:migrate:test:reset
 
       - name: Ejecutar todos los tests con cobertura
         run: npm run test:coverage
