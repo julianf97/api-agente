@@ -4,8 +4,7 @@ API REST con Express, PostgreSQL y Sequelize para demostrar automatización de u
 
 ## Badges
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/julianf97/api-agente/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/julianf97/api-agente/tree/main)
-[![Coverage Status](https://coveralls.io/repos/github/julianf97/api-agente/badge.svg?branch=main)](https://coveralls.io/github/julianf97/api-agente?branch=main)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/julianf97/api-agente/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/julianf97/api-agente/tree/main) [![Coverage Status](https://coveralls.io/repos/github/julianf97/api-agente/badge.svg?branch=main)](https://coveralls.io/github/julianf97/api-agente?branch=main)
 
 ## Roles
 
@@ -24,6 +23,7 @@ Las facturas conservan sus datos fiscales históricos y no se eliminan. Una orde
 ## Inicio rápido con Docker
 
 Necesitás Git y Docker Desktop iniciado (o Docker Engine con Docker Compose).
+
 Para esta opción no necesitás instalar Node.js ni PostgreSQL en tu computadora.
 
 ### 1. Clonar y configurar
@@ -35,6 +35,7 @@ Copy-Item .env.example .env
 ```
 
 En Linux o macOS, reemplazá `Copy-Item .env.example .env` por `cp .env.example .env`.
+
 Editá `.env` y reemplazá estos valores antes de arrancar:
 
 ```env
@@ -42,22 +43,17 @@ DB_PASSWORD=tu_password_de_postgres
 JWT_SECRET=tu_secreto_largo_y_aleatorio
 ```
 
-Cada programador configura su propia contraseña de PostgreSQL y su propio
-`JWT_SECRET`; no necesita credenciales del autor. Compose crea PostgreSQL y
-configura la API con las mismas credenciales. Si tenés Node.js instalado, podés
-generar el secreto con:
+Cada programador configura su propia contraseña de PostgreSQL y su propio `JWT_SECRET`; no necesita credenciales del autor. Compose crea PostgreSQL y configura la API con las mismas credenciales. Si tenés Node.js instalado, podés generar el secreto con:
 
 ```powershell
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
 Pegá el resultado como `JWT_SECRET` en `.env`. El agente no necesita este secreto:
+
 obtiene un token iniciando sesión. No subas `.env` al repositorio.
 
-Para los demás valores podés conservar los de `.env.example`. Dentro de Docker,
-Compose configura automáticamente `DB_HOST=db`, `DB_PORT=5432` y
-`DB_SCHEMA=api-agente`. `DB_HOST_PORT=5433` es el puerto de PostgreSQL accesible
-desde tu computadora; `HOST_PORT=3000` es el puerto público de la API.
+Para los demás valores podés conservar los de `.env.example`. Dentro de Docker, Compose configura automáticamente `DB_HOST=db`, `DB_PORT=5432` y `DB_SCHEMA=api-agente`. `DB_HOST_PORT=5433` es el puerto de PostgreSQL accesible desde tu computadora; `HOST_PORT=3000` es el puerto público de la API.
 
 ### 2. Levantar la demo completa
 
@@ -66,20 +62,61 @@ docker compose up -d --build
 docker compose logs -f api
 ```
 
-Este comando levanta PostgreSQL y la API. Antes de aceptar solicitudes, el servicio
-`api` ejecuta automáticamente esta secuencia:
+Este comando levanta PostgreSQL y la API. Antes de aceptar solicitudes, el servicio `api` ejecuta automáticamente esta secuencia:
 
 1. Espera a que PostgreSQL esté disponible.
 2. Aplica las migraciones para preparar las tablas y relaciones.
 3. Carga los usuarios, clientes y documentos de demostración.
 4. Inicia el servidor Express.
 
-**No tenés que ejecutar migraciones, SQL ni un seed manualmente.** Levantar solo
-`db` no ejecuta la carga de demo: esa carga forma parte del arranque de `api`.
+**No tenés que ejecutar migraciones, SQL ni un seed manualmente.** Levantar solo `db` no ejecuta la carga de demo: esa carga forma parte del arranque de `api`.
+
 Si una migración o el seed falla, el servidor no arranca; revisá los logs.
+
 Con `Ctrl+C` salís de los logs sin detener los contenedores.
 
-### 3. Acceder a la API
+### 3. Consultar los registros de PostgreSQL
+
+Después de que la API haya arrancado, salí de los logs con `Ctrl+C`. Desde la carpeta `api-agente`, ejecutá este comando en PowerShell para entrar a PostgreSQL dentro del contenedor:
+
+```powershell
+docker compose exec db psql -U postgres -d postgres
+```
+
+Si configuraste otro `DB_USER` o `DB_NAME` en `.env`, reemplazá los valores `postgres` del comando por los correspondientes.
+
+Cuando aparezca el prompt `postgres=#`, ya estás dentro de PostgreSQL. Pegá **todo este bloque junto** para ver la cantidad de registros por tabla:
+
+```sql
+SELECT 'users' AS tabla, COUNT(*) AS registros FROM "api-agente".users
+UNION ALL
+SELECT 'clients', COUNT(*) FROM "api-agente".clients
+UNION ALL
+SELECT 'documents', COUNT(*) FROM "api-agente".documents
+UNION ALL
+SELECT 'invoices', COUNT(*) FROM "api-agente".invoices;
+```
+
+**Las consultas SQL se ejecutan dentro de PostgreSQL, no directamente en PowerShell.** En una base nueva, antes de ejecutar el agente, deberías ver 2 usuarios, 5 clientes, 300 documentos y 0 facturas.
+
+Para ver los registros, ejecutá las siguientes consultas dentro de PostgreSQL:
+
+```sql
+SELECT id, username, email, role, enabled FROM "api-agente".users ORDER BY id;
+SELECT * FROM "api-agente".clients ORDER BY id;
+SELECT * FROM "api-agente".documents ORDER BY id LIMIT 20;
+SELECT * FROM "api-agente".invoices ORDER BY id LIMIT 20;
+```
+
+Las consultas de documentos y facturas muestran los primeros 20 registros. Quitá `LIMIT 20` para verlos todos. Si el resultado abre un paginador con `(END)`, presioná `q` para volver al prompt.
+
+Para salir de PostgreSQL y volver a PowerShell:
+
+```text
+\q
+```
+
+### 4. Acceder a la API
 
 | Servicio | Dirección predeterminada |
 | --- | --- |
@@ -88,8 +125,7 @@ Con `Ctrl+C` salís de los logs sin detener los contenedores.
 | PostgreSQL desde tu computadora | 127.0.0.1:5433 |
 | PostgreSQL desde el contenedor API | db:5432 |
 
-La API no expone registro público. Consultá la sección [Swagger](#swagger)
-para iniciar sesión y probar los endpoints.
+La API no expone registro público. Consultá la sección [Swagger](#swagger) para iniciar sesión y probar los endpoints.
 
 ## Datos que se cargan automáticamente
 
@@ -102,8 +138,7 @@ En una base nueva, el seed crea los siguientes registros relacionados entre sí:
 | documents | 300 documentos, asociados al usuario regular y a los clientes |
 | invoices | Sin facturas iniciales: las crea el agente desde las OV pendientes |
 
-Las tablas quedan preparadas mediante las migraciones. `SequelizeMeta` registra
-las migraciones aplicadas; no es una tabla de datos de negocio.
+Las tablas quedan preparadas mediante las migraciones. `SequelizeMeta` registra las migraciones aplicadas; no es una tabla de datos de negocio.
 
 | Tipo de documento | Cantidad inicial | Facturable por el agente |
 | --- | ---: | --- |
@@ -114,7 +149,9 @@ las migraciones aplicadas; no es una tabla de datos de negocio.
 | NC — nota de crédito | 37 | No |
 
 Los documentos se crean con estado `pending` y números como `DEMO-OV-0001`.
+
 Los clientes incluyen casos argentinos y de exportación. Los IDs pueden variar:
+
 el agente debe consultar la API para obtenerlos.
 
 | Usuario | Email | Contraseña inicial |
@@ -122,13 +159,10 @@ el agente debe consultar la API para obtenerlos.
 | demo_admin | admin@example.com | AdminDemo123! |
 | demo_regular | regular@example.com | RegularDemo123! |
 
-Estas credenciales son públicas para la demo; las contraseñas se almacenan
-hasheadas. Si las cuentas ya existen, el seed las reutiliza sin cambiar sus
-contraseñas y exige que estén habilitadas y tengan el rol correspondiente.
+Estas credenciales son públicas para la demo; las contraseñas se almacenan hasheadas. Si las cuentas ya existen, el seed las reutiliza sin cambiar sus contraseñas y exige que estén habilitadas y tengan el rol correspondiente.
 
-La carga puede repetirse: no duplica registros, no elimina datos ni restablece
-órdenes ya facturadas o canceladas. Reutiliza los clientes existentes y recrea
-los documentos de demo que se hayan eliminado. No se ejecuta en el schema de tests.
+La carga puede repetirse: no duplica registros, no elimina datos ni restablece órdenes ya facturadas o canceladas. Reutiliza los clientes existentes y recrea los documentos de demo que se hayan eliminado. No se ejecuta en el schema de tests.
+
 En una base existente, la cantidad total puede ser mayor si ya tenía otros datos.
 
 ## Conectar el agente
@@ -142,19 +176,13 @@ API_PASSWORD=RegularDemo123!
 BILLING_BATCH_SIZE=5
 ```
 
-Esta URL corresponde al agente ejecutándose en tu computadora con el puerto
-predeterminado. Si cambiás `HOST_PORT`, ajustá la URL. Configurá también las
-variables de OpenAI indicadas en el repositorio del agente.
+Esta URL corresponde al agente ejecutándose en tu computadora con el puerto predeterminado. Si cambiás `HOST_PORT`, ajustá la URL. Configurá también las variables de OpenAI indicadas en el repositorio del agente.
 
-El agente inicia sesión, consulta los documentos paginados y selecciona OV con
-estado `pending`. Para cada factura envía a `POST /invoices` solamente `number`
-y `documentId`. La API calcula los datos fiscales y el importe, crea la factura
-y marca la orden como `invoiced`. Una orden admite una única factura.
+El agente inicia sesión, consulta los documentos paginados y selecciona OV con estado `pending`. Para cada factura envía a `POST /invoices` solamente `number` y `documentId`. La API calcula los datos fiscales y el importe, crea la factura y marca la orden como `invoiced`. Una orden admite una única factura.
 
 ## API local con PostgreSQL en Docker
 
-Como alternativa para desarrollar, podés ejecutar solamente PostgreSQL en Docker
-y la API con Node.js 22 en tu computadora. Después de copiar y configurar `.env`:
+Como alternativa para desarrollar, podés ejecutar solamente PostgreSQL en Docker y la API con Node.js 22 en tu computadora. Después de copiar y configurar `.env`:
 
 ```powershell
 npm ci
@@ -168,18 +196,13 @@ npm run db:seed:demo
 npm run dev
 ```
 
-El puerto debe coincidir con `DB_HOST_PORT`. Estas variables de PowerShell se
-aplican a la terminal actual. En esta modalidad las migraciones y el seed son
-manuales: `npm run dev` solo inicia la API. No ejecutes simultáneamente otra API
-en el mismo puerto. Consultá [las migraciones](docs/migrations.md) para más detalles.
+El puerto debe coincidir con `DB_HOST_PORT`. Estas variables de PowerShell se aplican a la terminal actual. En esta modalidad las migraciones y el seed son manuales: `npm run dev` solo inicia la API. No ejecutes simultáneamente otra API en el mismo puerto. Consultá [las migraciones](docs/migrations.md) para más detalles.
 
 ## Swagger
 
-La documentación interactiva está disponible en [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
-después de levantar la API. Si cambiás `HOST_PORT`, usá ese puerto en la URL.
+La documentación interactiva está disponible en [http://localhost:3000/api-docs](http://localhost:3000/api-docs) después de levantar la API. Si cambiás `HOST_PORT`, usá ese puerto en la URL.
 
-Swagger muestra los endpoints, cuerpos de entrada, respuestas y requisitos de
-autenticación de Auth, Users, Clients, Documents e Invoices.
+Swagger muestra los endpoints, cuerpos de entrada, respuestas y requisitos de autenticación de Auth, Users, Clients, Documents e Invoices.
 
 ### Probar los endpoints
 
@@ -193,16 +216,12 @@ autenticación de Auth, Users, Clients, Documents e Invoices.
    ```
 
 2. Ejecutá la solicitud y copiá el valor de `accessToken`.
-3. Seleccioná **Authorize**, pegá solamente el token (sin el prefijo `Bearer`)
-   y confirmá. Swagger agrega automáticamente el encabezado de autorización.
-4. Usá **Try it out** para consultar documentos y crear facturas.
-   Para administrar usuarios, iniciá sesión con la cuenta admin.
+3. Seleccioná **Authorize**, pegá solamente el token (sin el prefijo `Bearer`) y confirmá. Swagger agrega automáticamente el encabezado de autorización.
+4. Usá **Try it out** para consultar documentos y crear facturas. Para administrar usuarios, iniciá sesión con la cuenta admin.
 
-Para probar la facturación, consultá `GET /documents` y elegí una OV con
-`status: pending`. En `POST /invoices`, enviá `number` y el `documentId`
-consultado. La API calcula el resto de los datos y marca la orden como facturada.
-Las solicitudes ejecutadas desde Swagger modifican la misma base de la demo
-que consume el agente.
+Para probar la facturación, consultá `GET /documents` y elegí una OV con `status: pending`. En `POST /invoices`, enviá `number` y el `documentId` consultado. La API calcula el resto de los datos y marca la orden como facturada.
+
+Las solicitudes ejecutadas desde Swagger modifican la misma base de la demo que consume el agente.
 
 ## Endpoints
 
@@ -249,30 +268,26 @@ docker compose down
 
 ### Contexto en las consultas de facturación
 
-Todas las respuestas JSON de `/clients`, `/documents` y `/invoices`
-(GET, POST, PATCH y DELETE, incluidos errores de validación y negocio) incluyen `context` con `description`, `fields` y `rules`. Explica las
-entidades, los campos y las reglas de facturación para consumidores como el agente.
-Los datos mantienen su ubicación y los listados conservan `pagination`. El contexto
-se incluye una vez por respuesta, también cuando el listado está vacío.
+Todas las respuestas JSON de `/clients`, `/documents` y `/invoices` (GET, POST, PATCH y DELETE, incluidos errores de validación y negocio) incluyen `context` con `description`, `fields` y `rules`. Explica las entidades, los campos y las reglas de facturación para consumidores como el agente.
 
-Para facturar, el agente recorre las páginas de documentos, selecciona `type: OV`
-y `status: pending`, y envía a `POST /invoices` únicamente `number` y `documentId`.
-La API aplica las reglas y evita facturar una orden dos veces. El contexto es
-metadata de respuesta: no se envía en POST/PATCH ni requiere migraciones.
-Los DELETE exitosos de clientes y documentos devuelven 200 con `message` y
-`context` en lugar de 204. DELETE de facturas sigue devolviendo 409 con contexto.
+Los datos mantienen su ubicación y los listados conservan `pagination`. El contexto se incluye una vez por respuesta, también cuando el listado está vacío.
+
+Para facturar, el agente recorre las páginas de documentos, selecciona `type: OV` y `status: pending`, y envía a `POST /invoices` únicamente `number` y `documentId`.
+
+La API aplica las reglas y evita facturar una orden dos veces. El contexto es metadata de respuesta: no se envía en POST/PATCH ni requiere migraciones.
+
+Los DELETE exitosos de clientes y documentos devuelven 200 con `message` y `context` en lugar de 204. DELETE de facturas sigue devolviendo 409 con contexto.
 
 `POST /auth/login` también incluye contexto sobre el token y los permisos.
 
 ### Tipos de documento
 
-Se admiten `OV` (orden de venta), `OC` (orden de compra), `PR` (presupuesto),
-`RE` (remito) y `NC` (nota de crédito). OV sigue siendo el valor por defecto.
-Solo una OV pendiente puede generar una factura. Los otros tipos se almacenan
-como documentos de demo, sin procesos contables adicionales.
+Se admiten `OV` (orden de venta), `OC` (orden de compra), `PR` (presupuesto), `RE` (remito) y `NC` (nota de crédito). OV sigue siendo el valor por defecto.
 
-Después de actualizar el código, ejecutar `npm run db:migrate` contra cada base
-(local y Docker, seleccionada mediante las variables DB_HOST y DB_PORT).
-Actualizar el schema de tests con `npm run db:migrate:test` en cada base.
-La migración conserva los documentos existentes y no carga datos de ejemplo.
+Solo una OV pendiente puede generar una factura. Los otros tipos se almacenan como documentos de demo, sin procesos contables adicionales.
 
+Después de actualizar el código, si ejecutás la demo completa en Docker, usá `docker compose up -d --build`: el arranque de la API aplica las migraciones y ejecuta el seed de demo.
+
+Si ejecutás la API localmente, aplicá las migraciones con `npm run db:migrate` y cargá la demo con `npm run db:seed:demo` cuando corresponda. Para actualizar el schema de tests, usá `npm run db:migrate:test` en la conexión elegida.
+
+Las migraciones conservan los documentos existentes y no cargan datos de ejemplo; esa carga corresponde al seed.
