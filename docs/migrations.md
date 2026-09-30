@@ -2,6 +2,28 @@
 
 Esta migración parte de la base existente con `users` e `invoices`. Hacé un backup y detené la API antes de ejecutarla. No ejecutes `bootstrap-db.js`: usa sync y no implementa la transición. La API todavía necesita adaptar rutas, permisos y Swagger antes de volver a usarse.
 
+## Base sin registros
+
+Docker inicializa únicamente la estructura original de `users` e `invoices`, sin usuarios ni facturas de ejemplo. La migración necesita estas tablas para transformarlas a la nueva estructura. Si ya borraste los registros y conservaste las tablas, no hace falta reinicializar el volumen.
+
+Con Docker Desktop iniciado, desde PowerShell:
+
+```powershell
+docker compose stop api
+docker compose up -d db
+npm ci
+$env:DB_HOST = "127.0.0.1"
+$env:DB_PORT = "5433"
+$env:DB_SCHEMA = "api-agente"
+$env:DB_USE_TEST_SCHEMA = "false"
+Remove-Item Env:MIGRATION_CLIENTS_FILE -ErrorAction SilentlyContinue
+npm run db:migrate:status
+npm run db:migrate
+npm run db:migrate:status
+```
+
+No necesitás JSON de clientes cuando no hay facturas anteriores. No ejecutes `docker compose down -v` para esta transición; conserva las tablas existentes. No vuelvas a iniciar la API hasta adaptar los endpoints a los nuevos modelos.
+
 ## Clientes históricos
 
 Prepará un JSON local (no lo subas al repositorio) con una entrada por cada `customerName` existente:
