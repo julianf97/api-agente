@@ -446,6 +446,25 @@ export function registerInvoiceCases(context) {
         'pending',
       );
     });
+    test.each(['OC', 'PR', 'RE', 'NC'])('%s admite CRUD pero no genera factura', async (type) => {
+      const { regular, client } = await setup();
+      const document = await order(client, regular, { type, number: `${type}-1` });
+      expect(document.type).toBe(type);
+      const rejected = await send('/invoices', regular.token, {
+        number: `FACT-${type}`, documentId: document.id,
+      });
+      expect(rejected.status).toBe(409);
+      expect(rejected.data.error).toBe('Solo se pueden facturar documentos de tipo OV.');
+      const stored = await request(`/documents/${document.id}`, { token: regular.token });
+      expect(stored.data.status).toBe('pending');
+      const updated = await send(`/documents/${document.id}`, regular.token, { amount: '200.00' }, 'PATCH');
+      expect(updated.status).toBe(200);
+      expect(updated.data.type).toBe(type);
+      const invoices = await request('/invoices', { token: regular.token });
+      expect(invoices.data.invoices).toEqual([]);
+      expect((await request(`/documents/${document.id}`, { token: regular.token, method: 'DELETE' })).status).toBe(200);
+    });
+
     test('ventas locales a extranjeros y órdenes canceladas no generan factura', async () => {
       const { regular, client } = await setup(null, 'UY');
       const document = await order(client, regular);

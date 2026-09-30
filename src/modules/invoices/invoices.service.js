@@ -1,5 +1,6 @@
 import {
   DOCUMENT_STATUSES,
+  DOCUMENT_TYPES,
   INVOICE_STATUSES,
 } from '../../constants/constants.js';
 import { BillingError } from '../../errors/billing-error.js';
@@ -39,6 +40,9 @@ export async function addInvoice(data) {
     const document = await findDocumentForInvoice(data.documentId, transaction);
     if (!document) {
       throw new BillingError('Documento no encontrado.', 404);
+    }
+    if (document.type !== DOCUMENT_TYPES.SALES_ORDER) {
+      throw new BillingError('Solo se pueden facturar documentos de tipo OV.');
     }
     if (document.status !== DOCUMENT_STATUSES.PENDING) {
       throw new BillingError('Solo se puede facturar una orden pendiente.');

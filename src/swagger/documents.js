@@ -1,3 +1,4 @@
+import { DOCUMENT_TYPES } from '../constants/constants.js';
 import {
   idSchema,
   textSchema,
@@ -15,7 +16,7 @@ import {
 
 const fields = {
   number: textSchema,
-  type: { type: 'string', enum: ['OV'], default: 'OV' },
+  type: { type: 'string', enum: Object.values(DOCUMENT_TYPES), default: 'OV' },
   userId: idSchema,
   clientId: idSchema,
   amount: amountSchema,
@@ -29,7 +30,7 @@ export const documentPaths = {
       tags: ['Documents'],
       summary: 'Listar documentos',
       description:
-        'Admin y regular acceden y operan sobre todas las órdenes. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
+        'Admin y regular acceden y operan sobre todos los documentos. Solo se modifican o eliminan documentos pendientes. Solo una OV pendiente puede facturarse. El estado invoiced se asigna al emitir una factura.',
       security,
       parameters: paginationParameters,
       responses: {
@@ -41,7 +42,7 @@ export const documentPaths = {
       tags: ['Documents'],
       summary: 'Crear documento',
       description:
-        'Admin y regular acceden y operan sobre todas las órdenes. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
+        'Admin y regular acceden y operan sobre todos los documentos. Solo se modifican o eliminan documentos pendientes. Solo una OV pendiente puede facturarse. El estado invoiced se asigna al emitir una factura.',
       security,
       requestBody: requestBody('CreateDocumentRequest'),
       responses: {
@@ -65,7 +66,7 @@ export const documentPaths = {
       tags: ['Documents'],
       summary: 'Editar documento',
       description:
-        'Admin y regular acceden y operan sobre todas las órdenes. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
+        'Admin y regular acceden y operan sobre todos los documentos. Solo se modifican o eliminan documentos pendientes. Solo una OV pendiente puede facturarse. El estado invoiced se asigna al emitir una factura.',
       security,
       parameters: [idParameter],
       requestBody: requestBody('UpdateDocumentRequest'),
@@ -78,7 +79,7 @@ export const documentPaths = {
       tags: ['Documents'],
       summary: 'Eliminar documento',
       description:
-        'Admin y regular acceden y operan sobre todas las órdenes. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
+        'Admin y regular acceden y operan sobre todos los documentos. Solo se modifican o eliminan documentos pendientes. Solo una OV pendiente puede facturarse. El estado invoiced se asigna al emitir una factura.',
       security,
       parameters: [idParameter],
       responses: {

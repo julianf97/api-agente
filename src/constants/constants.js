@@ -126,7 +126,13 @@ export const CLIENT_TAX_CONDITIONS = Object.freeze({
   EXEMPT: 'exento',
 });
 
-export const DOCUMENT_TYPES = Object.freeze({ SALES_ORDER: 'OV' });
+export const DOCUMENT_TYPES = Object.freeze({
+  SALES_ORDER: 'OV',
+  PURCHASE_ORDER: 'OC',
+  QUOTE: 'PR',
+  DELIVERY_NOTE: 'RE',
+  CREDIT_NOTE: 'NC',
+});
 export const DOCUMENT_STATUSES = Object.freeze({
   PENDING: 'pending',
   INVOICED: 'invoiced',

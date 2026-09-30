@@ -22,3 +22,15 @@ Las órdenes solo se editan o eliminan mientras están pendientes. Las facturas 
 ## Estructura del código
 
 Los módulos siguen el mismo esquema del proyecto: controller, service, repository en la raíz; presentación, preparación de datos y reglas en `support`; validadores en `validators`. Los modelos Sequelize permanecen en `src/models` y Swagger en `src/swagger`. No hay un framework genérico de CRUD.
+
+## Documentos variados
+
+`POST /documents` y `PATCH /documents/{id}` admiten `OV` (orden de venta),
+`OC` (orden de compra), `PR` (presupuesto), `RE` (remito) y `NC` (nota de crédito).
+OV es el tipo por defecto. Todos pueden consultarse y editarse mientras estén
+pendientes; solo una OV pendiente se factura. Los otros tipos son registros de
+demo, sin efectos contables ni procesos fiscales adicionales.
+
+La migración `202609300003-expand-document-types.js` amplía el enum de PostgreSQL
+sin eliminar registros. Su reversión se bloquea si existen documentos de los
+nuevos tipos, para no convertirlos ni eliminarlos silenciosamente.

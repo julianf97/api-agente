@@ -115,3 +115,15 @@ Los DELETE exitosos de clientes y documentos devuelven 200 con `message` y
 `context` en lugar de 204. DELETE de facturas sigue devolviendo 409 con contexto.
 
 `POST /auth/login` también incluye contexto sobre el token y los permisos.
+
+### Tipos de documento
+
+Se admiten `OV` (orden de venta), `OC` (orden de compra), `PR` (presupuesto),
+`RE` (remito) y `NC` (nota de crédito). OV sigue siendo el valor por defecto.
+Solo una OV pendiente puede generar una factura. Los otros tipos se almacenan
+como documentos de demo, sin procesos contables adicionales.
+
+Después de actualizar el código, ejecutar `npm run db:migrate` contra cada base
+(local y Docker, seleccionada mediante las variables DB_HOST y DB_PORT).
+Actualizar el schema de tests con `npm run db:migrate:test` en cada base.
+La migración conserva los documentos existentes y no carga datos de ejemplo.

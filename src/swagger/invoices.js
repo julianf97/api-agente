@@ -32,7 +32,7 @@ export const invoicePaths = {
       summary: 'Facturar una orden de venta',
       security,
       description:
-        'Una orden pendiente genera una única factura. E para exportación; A para responsables inscriptos o monotributistas; B para consumidores finales o exentos. Importe, dueño y cliente se toman de la orden. Se guardan los datos fiscales del cliente al emitir. Demo sin autorización fiscal de ARCA.',
+        'Una orden de venta de tipo OV pendiente genera una única factura. E para exportación; A para responsables inscriptos o monotributistas; B para consumidores finales o exentos. Importe, dueño y cliente se toman de la orden. Se guardan los datos fiscales del cliente al emitir. Demo sin autorización fiscal de ARCA.',
       requestBody: requestBody('CreateInvoiceRequest'),
       responses: {
         ...billingResponses(400, 401, 404, 409, 500),

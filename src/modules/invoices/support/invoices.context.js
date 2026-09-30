@@ -1,7 +1,7 @@
 export const invoiceContext = {
   "description": "Facturas generadas a partir de órdenes de venta. Demo sin autorización fiscal de ARCA.",
   "fields": {
-    "documentId": "Orden de venta de origen; una orden admite una sola factura.",
+    "documentId": "Orden de venta OV de origen; una orden admite una sola factura.",
     "number": "Número único de factura, proporcionado al crearla.",
     "type": "E: exportación; A: cliente argentino responsable_inscripto o monotributista; B: cliente argentino consumidor_final o exento.",
     "amount": "Importe decimal como string, tomado de la orden de venta.",

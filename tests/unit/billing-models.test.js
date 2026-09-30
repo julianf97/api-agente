@@ -55,6 +55,14 @@ describe('Billing models without database mutation', () => {
     await expect(models.Document.build({ ...data, amount: '-1.00' }).validate()).rejects.toThrow();
   });
 
+  test('documents admit five commercial types', async () => {
+    const data = { number: 'DOC-1', userId: 1, clientId: 1, amount: '100.00' };
+    expect(models.Document.rawAttributes.type.values).toEqual(['OV', 'OC', 'PR', 'RE', 'NC']);
+    for (const type of ['OV', 'OC', 'PR', 'RE', 'NC']) {
+      await expect(models.Document.build({ ...data, type }).validate()).resolves.toBeDefined();
+    }
+  });
+
   test('generated invoices require origin, class and customer snapshot', async () => {
     const data = { number: 'A-1', documentId: 1, userId: 1, clientId: 1, type: 'A', customerName: 'Client', customerTaxId: '123', customerCountry: 'AR', customerAddress: 'Address', amount: '100.00' };
     const invoice = models.Invoice.build(data);
@@ -65,3 +73,4 @@ describe('Billing models without database mutation', () => {
     expect(models.Invoice.rawAttributes.type.values).toEqual(['A', 'B', 'E']);
   });
 });
+

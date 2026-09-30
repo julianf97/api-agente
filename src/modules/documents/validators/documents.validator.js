@@ -1,3 +1,4 @@
+import { DOCUMENT_TYPES } from '../../../constants/constants.js';
 import { body, param, checkExact, oneOf } from 'express-validator';
 import { USER_ID_MAX } from '../../../constants/validation-limits.js';
 import { listInvoicesValidation } from '../../invoices/validators/listInvoices.validator.js';
@@ -26,7 +27,7 @@ const fields = () => [
   invoiceAmount(),
   body('isExport').optional().isBoolean({ strict: true }),
   id('userId').optional(),
-  body('type').optional().equals('OV'),
+  body('type').optional().isIn(Object.values(DOCUMENT_TYPES)),
 ];
 export const createDocumentValidation = [
   ...fields(),
