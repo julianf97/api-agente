@@ -2,7 +2,10 @@
 
 API REST con Express, PostgreSQL y Sequelize para demostrar automatización de un ERP. Gestiona usuarios, clientes, órdenes de venta y facturas. El agente del repositorio [agent-ts-langchain](https://github.com/julianf97/agent-ts-langchain) consume esta API para generar facturas desde órdenes de venta pendientes.
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/julianf97/api-agente/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/julianf97/api-agente/tree/main) [![Coverage Status](https://coveralls.io/repos/github/julianf97/api-agente/badge.svg?branch=main)](https://coveralls.io/github/julianf97/api-agente?branch=main)
+## Badges
+
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/julianf97/api-agente/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/julianf97/api-agente/tree/main)
+[![Coverage Status](https://coveralls.io/repos/github/julianf97/api-agente/badge.svg?branch=main)](https://coveralls.io/github/julianf97/api-agente?branch=main)
 
 ## Roles
 
@@ -85,9 +88,8 @@ Con `Ctrl+C` salís de los logs sin detener los contenedores.
 | PostgreSQL desde tu computadora | 127.0.0.1:5433 |
 | PostgreSQL desde el contenedor API | db:5432 |
 
-Abrí Swagger y ejecutá `POST /auth/login` con una cuenta de demo. Copiá el
-`accessToken` devuelto y usalo en **Authorize** para probar las rutas protegidas.
-La API no expone registro público.
+La API no expone registro público. Consultá la sección [Swagger](#swagger)
+para iniciar sesión y probar los endpoints.
 
 ## Datos que se cargan automáticamente
 
@@ -171,6 +173,37 @@ aplican a la terminal actual. En esta modalidad las migraciones y el seed son
 manuales: `npm run dev` solo inicia la API. No ejecutes simultáneamente otra API
 en el mismo puerto. Consultá [las migraciones](docs/migrations.md) para más detalles.
 
+## Swagger
+
+La documentación interactiva está disponible en [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+después de levantar la API. Si cambiás `HOST_PORT`, usá ese puerto en la URL.
+
+Swagger muestra los endpoints, cuerpos de entrada, respuestas y requisitos de
+autenticación de Auth, Users, Clients, Documents e Invoices.
+
+### Probar los endpoints
+
+1. Abrí `POST /auth/login`, seleccioná **Try it out** y enviá las credenciales de demo:
+
+   ```json
+   {
+     "email": "regular@example.com",
+     "password": "RegularDemo123!"
+   }
+   ```
+
+2. Ejecutá la solicitud y copiá el valor de `accessToken`.
+3. Seleccioná **Authorize**, pegá solamente el token (sin el prefijo `Bearer`)
+   y confirmá. Swagger agrega automáticamente el encabezado de autorización.
+4. Usá **Try it out** para consultar documentos y crear facturas.
+   Para administrar usuarios, iniciá sesión con la cuenta admin.
+
+Para probar la facturación, consultá `GET /documents` y elegí una OV con
+`status: pending`. En `POST /invoices`, enviá `number` y el `documentId`
+consultado. La API calcula el resto de los datos y marca la orden como facturada.
+Las solicitudes ejecutadas desde Swagger modifican la misma base de la demo
+que consume el agente.
+
 ## Endpoints
 
 Todas las rutas salvo login requieren `Authorization: Bearer <token>`.
@@ -242,3 +275,4 @@ Después de actualizar el código, ejecutar `npm run db:migrate` contra cada bas
 (local y Docker, seleccionada mediante las variables DB_HOST y DB_PORT).
 Actualizar el schema de tests con `npm run db:migrate:test` en cada base.
 La migración conserva los documentos existentes y no carga datos de ejemplo.
+
