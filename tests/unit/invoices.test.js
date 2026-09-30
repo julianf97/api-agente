@@ -4,16 +4,8 @@ import {
   toInvoiceCreationData,
 } from '../../src/modules/invoices/support/invoices.mapper.js';
 import {
-  canReadInvoice,
-  invoiceVisibility,
-} from '../../src/modules/invoices/support/invoices.permissions.js';
-import {
-  assertCanRead,
-  assertCanManage,
-} from '../../src/modules/invoices/support/invoices.guards.js';
-import {
   assertPendingDocument,
-  assertCanAssignOwner,
+  assertDocumentExists,
 } from '../../src/modules/documents/support/documents.guards.js';
 import { assertClientTaxData } from '../../src/modules/clients/support/clients.guards.js';
 
@@ -74,16 +66,9 @@ describe('Reglas de facturación', () => {
     client.name = 'Nuevo';
     expect(data.customerName).toBe('Cliente');
   });
-  test('regular solo ve sus registros y no puede asignar dueños ni administrar facturas', () => {
-    const actor = { role: 'regular', sub: '3' };
-    expect(canReadInvoice(actor, order)).toBe(true);
-    expect(canReadInvoice({ ...actor, sub: '4' }, order)).toBe(false);
-    expect(invoiceVisibility(actor)).toEqual({ userId: 3 });
-    expect(invoiceVisibility({ role: 'admin' })).toEqual({});
-    expect(() => assertCanRead({ ...actor, sub: '4' }, order)).toThrow();
-    expect(() => assertCanManage(actor)).toThrow();
-    expect(() => assertCanAssignOwner(actor, { userId: 3 })).toThrow();
-    expect(() => assertCanManage({ role: 'admin' })).not.toThrow();
+  test('un documento inexistente devuelve un error controlado', () => {
+    expect(() => assertDocumentExists(null)).toThrow('Documento no encontrado.');
+    expect(() => assertDocumentExists(order)).not.toThrow();
   });
   test('órdenes facturadas/canceladas se bloquean y clientes locales requieren condición fiscal', () => {
     for (const status of ['invoiced', 'cancelled'])

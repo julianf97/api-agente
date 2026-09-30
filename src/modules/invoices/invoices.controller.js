@@ -11,7 +11,7 @@ import {
 export async function listInvoices(req, res, next) {
   try {
     const pagination = matchedData(req, { locations: ['query'] });
-    const result = await listInvoicesService(pagination, req.auth);
+    const result = await listInvoicesService(pagination);
 
     return res.status(200).json({
       invoices: result.invoices.map(toInvoiceResponse),
@@ -29,7 +29,7 @@ export async function listInvoices(req, res, next) {
 
 export async function getInvoice(req, res, next) {
   try {
-    const invoice = await getInvoiceService(req.params.id, req.auth);
+    const invoice = await getInvoiceService(req.params.id);
 
     return res.status(200).json(toInvoiceResponse(invoice));
   } catch (error) {
@@ -39,7 +39,7 @@ export async function getInvoice(req, res, next) {
 
 export async function createInvoice(req, res, next) {
   try {
-    const invoice = await addInvoiceService(req.validatedBody, req.auth);
+    const invoice = await addInvoiceService(req.validatedBody);
 
     return res.status(201).json(toInvoiceResponse(invoice));
   } catch (error) {
@@ -52,7 +52,6 @@ export async function updateInvoice(req, res, next) {
     const invoice = await editInvoiceService(
       req.params.id,
       req.validatedBody,
-      req.auth,
     );
 
     return res.status(200).json(toInvoiceResponse(invoice));
@@ -63,7 +62,7 @@ export async function updateInvoice(req, res, next) {
 
 export async function deleteInvoice(req, res, next) {
   try {
-    await removeInvoiceService(req.params.id, req.auth);
+    await removeInvoiceService(req.params.id);
 
     return res.status(204).send();
   } catch (error) {

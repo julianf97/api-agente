@@ -20,7 +20,7 @@ export function registerInvoiceCases(context) {
     const regular = await actor('billing_regular', 'regular');
     const response = await send(
       '/clients',
-      admin.token,
+      regular.token,
       clientData(taxCondition, country),
     );
     expect(response.status).toBe(201);
@@ -38,30 +38,30 @@ export function registerInvoiceCases(context) {
   }
 
   describe('Clientes y documentos', () => {
-    test('CRUD de clientes valida condición fiscal, duplicados y referencias', async () => {
-      const { admin, regular, client } = await setup();
-      expect((await request('/clients', { token: admin.token })).status).toBe(
+    test('CRUD de clientes regular valida condición fiscal, duplicados y referencias', async () => {
+      const { regular, client } = await setup();
+      expect((await request('/clients', { token: regular.token })).status).toBe(
         200,
       );
       expect(
-        (await request(`/clients/${client.id}`, { token: admin.token })).status,
+        (await request(`/clients/${client.id}`, { token: regular.token })).status,
       ).toBe(200);
       expect(
         (
           await send(
             `/clients/${client.id}`,
-            admin.token,
+            regular.token,
             { name: 'Nuevo nombre' },
             'PATCH',
           )
         ).status,
       ).toBe(200);
-      expect((await send('/clients', admin.token, clientData())).status).toBe(
+      expect((await send('/clients', regular.token, clientData())).status).toBe(
         409,
       );
       expect(
         (
-          await send('/clients', admin.token, {
+          await send('/clients', regular.token, {
             ...clientData(),
             taxId: 'other',
             taxCondition: null,
@@ -70,7 +70,7 @@ export function registerInvoiceCases(context) {
       ).toBe(400);
       expect(
         (
-          await send('/clients', admin.token, {
+          await send('/clients', regular.token, {
             ...clientData(),
             taxId: 'other',
             country: 'ARG',
@@ -78,13 +78,13 @@ export function registerInvoiceCases(context) {
         ).status,
       ).toBe(400);
       expect(
-        (await send(`/clients/${client.id}`, admin.token, {}, 'PATCH')).status,
+        (await send(`/clients/${client.id}`, regular.token, {}, 'PATCH')).status,
       ).toBe(400);
       expect(
         (
           await send(
             `/clients/${client.id}`,
-            admin.token,
+            regular.token,
             { extra: true },
             'PATCH',
           )
@@ -94,7 +94,7 @@ export function registerInvoiceCases(context) {
         (
           await send(
             `/clients/${client.id}`,
-            admin.token,
+            regular.token,
             { name: 'Nombre', extra: true },
             'PATCH',
           )
@@ -104,21 +104,21 @@ export function registerInvoiceCases(context) {
         (
           await send(
             `/clients/${client.id}`,
-            admin.token,
+            regular.token,
             { country: 'UY', taxCondition: null },
             'PATCH',
           )
         ).data.taxCondition,
       ).toBe(null);
       expect(
-        (await request('/clients/999999', { token: admin.token })).status,
+        (await request('/clients/999999', { token: regular.token })).status,
       ).toBe(404);
       const document = await order(client, regular);
       expect(
         (
           await request(`/clients/${client.id}`, {
             method: 'DELETE',
-            token: admin.token,
+            token: regular.token,
           })
         ).status,
       ).toBe(409);
@@ -134,12 +134,30 @@ export function registerInvoiceCases(context) {
         (
           await request(`/clients/${client.id}`, {
             method: 'DELETE',
-            token: admin.token,
+            token: regular.token,
           })
         ).status,
       ).toBe(204);
     });
-    test('órdenes propias, cambios, cancelación y bloqueos', async () => {
+    test('regular crea y elimina órdenes de otro usuario', async () => {
+      const { regular, client } = await setup();
+      const other = await actor('other', 'regular');
+      const created = await send('/documents', regular.token, {
+        number: 'OV-shared',
+        clientId: client.id,
+        userId: other.user.id,
+        amount: '100.00',
+      });
+      expect(created.status).toBe(201);
+      expect(created.data.userId).toBe(other.user.id);
+      expect(
+        (await request(`/documents/${created.data.id}`, {
+          method: 'DELETE',
+          token: regular.token,
+        })).status,
+      ).toBe(204);
+    });
+    test('órdenes compartidas, cambios, cancelación y bloqueos', async () => {
       const { admin, regular, client } = await setup();
       const other = await actor('other', 'regular');
       const document = await order(client, regular);
@@ -148,11 +166,11 @@ export function registerInvoiceCases(context) {
       ).toHaveLength(1);
       expect(
         (await request('/documents', { token: other.token })).data.documents,
-      ).toHaveLength(0);
+      ).toHaveLength(1);
       expect(
         (await request(`/documents/${document.id}`, { token: other.token }))
           .status,
-      ).toBe(404);
+      ).toBe(200);
       expect(
         (await request(`/documents/${document.id}`, { token: admin.token }))
           .status,
@@ -161,7 +179,7 @@ export function registerInvoiceCases(context) {
         (
           await send(
             `/documents/${document.id}`,
-            regular.token,
+            other.token,
             { amount: '200.00' },
             'PATCH',
           )
@@ -171,31 +189,31 @@ export function registerInvoiceCases(context) {
         (
           await send(
             `/documents/${document.id}`,
-            regular.token,
+            other.token,
             { amount: '200.00', extra: true },
             'PATCH',
           )
         ).status,
       ).toBe(400);
       expect(
-        (await send(`/documents/${document.id}`, regular.token, {}, 'PATCH'))
+        (await send(`/documents/${document.id}`, other.token, {}, 'PATCH'))
           .status,
       ).toBe(400);
       expect(
         (
           await send(
             `/documents/${document.id}`,
-            regular.token,
+            other.token,
             { userId: other.user.id },
             'PATCH',
           )
         ).status,
-      ).toBe(403);
+      ).toBe(200);
       expect(
         (
           await send(
             `/documents/${document.id}`,
-            regular.token,
+            other.token,
             { status: 'cancelled' },
             'PATCH',
           )
@@ -205,7 +223,7 @@ export function registerInvoiceCases(context) {
         (
           await send(
             `/documents/${document.id}`,
-            regular.token,
+            other.token,
             { amount: '1.00' },
             'PATCH',
           )
@@ -215,13 +233,13 @@ export function registerInvoiceCases(context) {
         (
           await request(`/documents/${document.id}`, {
             method: 'DELETE',
-            token: regular.token,
+            token: other.token,
           })
         ).status,
       ).toBe(409);
       expect(
         (
-          await request(`/users/${regular.user.id}`, {
+          await request(`/users/${other.user.id}`, {
             method: 'DELETE',
             token: admin.token,
           })
@@ -325,32 +343,25 @@ export function registerInvoiceCases(context) {
         ).data.type,
       ).toBe('E');
     });
-    test('acceso por dueño, estado fiscal inmutable y cancelación admin', async () => {
-      const { admin, regular, client } = await setup();
+    test('acceso compartido, estado fiscal inmutable y cancelación regular', async () => {
+      const { regular, client } = await setup();
       const other = await actor('other', 'regular');
       const document = await order(client, regular);
-      expect(
-        (
-          await send('/invoices', other.token, {
-            number: 'A-1',
-            documentId: document.id,
-          })
-        ).status,
-      ).toBe(404);
-      const invoice = await send('/invoices', regular.token, {
+      const invoice = await send('/invoices', other.token, {
         number: 'A-1',
         documentId: document.id,
       });
+      expect(invoice.status).toBe(201);
       const id = invoice.data.id;
       expect(
         (await request('/invoices', { token: regular.token })).data.invoices,
       ).toHaveLength(1);
       expect(
         (await request('/invoices', { token: other.token })).data.invoices,
-      ).toHaveLength(0);
+      ).toHaveLength(1);
       expect(
         (await request(`/invoices/${id}`, { token: other.token })).status,
-      ).toBe(404);
+      ).toBe(200);
       expect(
         (
           await send(
@@ -360,12 +371,12 @@ export function registerInvoiceCases(context) {
             'PATCH',
           )
         ).status,
-      ).toBe(403);
+      ).toBe(200);
       expect(
         (
           await send(
             `/invoices/${id}`,
-            admin.token,
+            other.token,
             { amount: '1.00' },
             'PATCH',
           )
@@ -375,7 +386,7 @@ export function registerInvoiceCases(context) {
         (
           await send(
             `/invoices/${id}`,
-            admin.token,
+            other.token,
             { status: 'paid' },
             'PATCH',
           )
@@ -385,7 +396,7 @@ export function registerInvoiceCases(context) {
         (
           await send(
             `/invoices/${id}`,
-            admin.token,
+            other.token,
             { status: 'cancelled' },
             'PATCH',
           )
@@ -395,7 +406,7 @@ export function registerInvoiceCases(context) {
         (
           await send(
             `/invoices/${id}`,
-            admin.token,
+            other.token,
             { status: 'paid' },
             'PATCH',
           )
@@ -405,7 +416,7 @@ export function registerInvoiceCases(context) {
         (
           await request(`/invoices/${id}`, {
             method: 'DELETE',
-            token: admin.token,
+            token: other.token,
           })
         ).status,
       ).toBe(409);

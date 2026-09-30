@@ -4,7 +4,7 @@ La API usa cuatro entidades: usuarios, clientes, documentos y facturas. Los úni
 
 ## Flujo
 
-1. Admin crea el cliente con nombre, identificación fiscal, condición fiscal, país y domicilio.
+1. Admin o regular crea el cliente con nombre, identificación fiscal, condición fiscal, país y domicilio.
 2. Se crea una orden de venta en `POST /documents`, con `number`, `clientId`, `amount` y, opcionalmente, `isExport`. Empieza como `OV` pendiente.
 3. `POST /invoices` recibe únicamente `number` y `documentId`. El servicio bloquea la orden, consulta el cliente, crea la factura y marca la orden `invoiced` dentro de una transacción.
 4. La restricción única sobre `documentId` y el bloqueo de la orden evitan facturas duplicadas en ejecuciones concurrentes.
@@ -15,7 +15,7 @@ El dueño y el importe de la factura provienen de la orden. Los datos fiscales d
 
 El emisor se considera responsable inscripto argentino. Una exportación produce E; una venta local a un responsable inscripto o monotributista produce A; a consumidor final o exento produce B. Una venta local requiere un cliente argentino. Son registros de demostración sin autorización fiscal de ARCA.
 
-Admin administra usuarios y clientes y consulta todas las órdenes/facturas. Regular no accede a usuarios ni clientes y solo consulta y opera sus propias órdenes/facturas. Solo admin puede asignar el dueño de una orden y marcar una factura pagada o cancelada.
+Solo admin administra usuarios. Ambos roles administran todos los clientes y consultan y operan sobre todas las órdenes y facturas, independientemente del dueño. Ambos pueden asignar el dueño de una orden y marcar una factura pagada o cancelada. El agente opera con el rol regular.
 
 Las órdenes solo se editan o eliminan mientras están pendientes. Las facturas emitidas conservan origen, importe y datos fiscales; no se eliminan. `DELETE /invoices/:id` devuelve 409 para conservar esa regla y `PATCH` permite cancelar. Los usuarios y clientes relacionados con documentos o facturas no se eliminan.
 

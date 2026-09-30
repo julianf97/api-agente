@@ -37,7 +37,7 @@ export function registerUserCrudCases(context) {
       ).toBe(204);
       expect((await request(`/users/${id}`, { token })).status).toBe(404);
     });
-    test('regular no accede a ninguna ruta de usuarios ni clientes', async () => {
+    test('regular no accede a ninguna ruta de usuarios', async () => {
       const { token } = await actor('regular', 'regular');
       for (const [path, method] of [
         ['/users', 'GET'],
@@ -46,10 +46,6 @@ export function registerUserCrudCases(context) {
         ['/users/1', 'PATCH'],
         ['/users/1/role', 'PATCH'],
         ['/users/1', 'DELETE'],
-        ['/clients', 'GET'],
-        ['/clients', 'POST'],
-        ['/clients/1', 'PATCH'],
-        ['/clients/1', 'DELETE'],
       ]) {
         expect(
           (

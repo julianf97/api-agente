@@ -8,12 +8,13 @@ API REST con Express, PostgreSQL y Sequelize para demostrar automatización de u
 
 | Operación | admin | regular |
 | --- | --- | --- |
-| Administrar usuarios y clientes | Sí | No |
-| Consultar documentos y facturas | Todos | Propios |
-| Crear órdenes de venta | Cualquier dueño | Propias |
-| Editar/eliminar órdenes pendientes | Todas | Propias |
-| Facturar una orden pendiente | Todas | Propias |
-| Marcar factura pagada o cancelada | Sí | No |
+| Administrar usuarios | Sí | No |
+| Administrar clientes | Sí | Sí |
+| Consultar documentos y facturas | Todos | Todos |
+| Crear órdenes de venta | Cualquier dueño | Cualquier dueño |
+| Editar/eliminar órdenes pendientes | Todas | Todas |
+| Facturar una orden pendiente | Todas | Todas |
+| Marcar factura pagada o cancelada | Sí | Sí |
 
 Las facturas conservan sus datos fiscales históricos y no se eliminan. Una orden genera una sola factura completa. Consultá [las reglas de facturación](docs/billing-models.md).
 

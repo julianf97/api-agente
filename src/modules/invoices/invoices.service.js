@@ -3,11 +3,6 @@ import {
   INVOICE_STATUSES,
 } from '../../constants/constants.js';
 import { BillingError } from '../../errors/billing-error.js';
-import {
-  invoiceVisibility,
-  canReadInvoice,
-} from './support/invoices.permissions.js';
-import { assertCanRead, assertCanManage } from './support/invoices.guards.js';
 import { findExistingInvoice } from './support/find-existing-invoice.js';
 import { toInvoiceCreationData } from './support/invoices.mapper.js';
 import {
@@ -18,12 +13,10 @@ import {
   createInvoice,
   markDocumentInvoiced,
   updateInvoice,
-  deleteInvoice,
 } from './invoices.repository.js';
 
-export async function listInvoices({ page = 1, limit = 20 }, actor) {
+export async function listInvoices({ page = 1, limit = 20 }) {
   const { rows, count } = await findInvoices({
-    where: invoiceVisibility(actor),
     limit,
     offset: (page - 1) * limit,
   });
@@ -36,16 +29,15 @@ export async function listInvoices({ page = 1, limit = 20 }, actor) {
   };
 }
 
-export async function getInvoice(id, actor) {
+export async function getInvoice(id) {
   const invoice = await findExistingInvoice(id);
-  assertCanRead(actor, invoice);
   return invoice;
 }
 
-export async function addInvoice(data, actor) {
+export async function addInvoice(data) {
   return inInvoiceTransaction(async (transaction) => {
     const document = await findDocumentForInvoice(data.documentId, transaction);
-    if (!document || !canReadInvoice(actor, document)) {
+    if (!document) {
       throw new BillingError('Documento no encontrado.', 404);
     }
     if (document.status !== DOCUMENT_STATUSES.PENDING) {
@@ -62,8 +54,7 @@ export async function addInvoice(data, actor) {
   });
 }
 
-export async function editInvoice(id, data, actor) {
-  assertCanManage(actor);
+export async function editInvoice(id, data) {
   return inInvoiceTransaction(async (transaction) => {
     const invoice = await findExistingInvoice(id, transaction);
     if (
@@ -78,8 +69,7 @@ export async function editInvoice(id, data, actor) {
   });
 }
 
-export async function removeInvoice(id, actor) {
-  assertCanManage(actor);
+export async function removeInvoice(id) {
   // Issued invoices remain as historical records; cancel instead of deleting them.
   await findExistingInvoice(id);
   throw new BillingError(

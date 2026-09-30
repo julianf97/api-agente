@@ -11,7 +11,7 @@ const router = Router();
 
 router.use('/auth', authRouter);
 router.use('/users', authenticate, requireAdmin, usersRouter);
-router.use('/clients', authenticate, requireAdmin, clientsRouter);
+router.use('/clients', authenticate, clientsRouter);
 router.use('/documents', authenticate, documentsRouter);
 router.use('/invoices', authenticate, invoicesRouter);
 

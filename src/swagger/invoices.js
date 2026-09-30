@@ -19,7 +19,7 @@ export const invoicePaths = {
       summary: 'Listar facturas',
       security,
       parameters: paginationParameters,
-      description: 'Admin consulta todas; regular solo las propias.',
+      description: 'Admin y regular consultan todas las facturas.',
       responses: {
         ...billingResponses(400, 401, 500),
         200: jsonResponse('InvoiceListResponse', 'Listado paginado.'),
@@ -58,10 +58,10 @@ export const invoicePaths = {
       security,
       parameters: [idParameter],
       description:
-        'Solo admin. No modifica el origen, importe ni los datos fiscales históricos. Una factura cancelada no se modifica.',
+        'Admin y regular pueden operar sobre todas las facturas. No modifica el origen, importe ni los datos fiscales históricos. Una factura cancelada no se modifica.',
       requestBody: requestBody('UpdateInvoiceRequest'),
       responses: {
-        ...billingResponses(400, 401, 403, 404, 409, 500),
+        ...billingResponses(400, 401, 404, 409, 500),
         200: jsonResponse('InvoiceResponse', 'Estado actualizado.'),
       },
     },
@@ -71,8 +71,8 @@ export const invoicePaths = {
       security,
       parameters: [idParameter],
       description:
-        'Solo admin. Las facturas emitidas se conservan; devuelve 409. Para anular, usar PATCH con status cancelled.',
-      responses: billingResponses(400, 401, 403, 404, 409, 500),
+        'Admin y regular pueden operar sobre todas las facturas. Las facturas emitidas se conservan; devuelve 409. Para anular, usar PATCH con status cancelled.',
+      responses: billingResponses(400, 401, 404, 409, 500),
     },
   },
 };

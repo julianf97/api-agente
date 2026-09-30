@@ -36,11 +36,11 @@ export const clientPaths = {
       tags: ['Clients'],
       summary: 'Listar clientes',
       description:
-        'Solo admin puede administrar clientes. Los clientes argentinos requieren condición fiscal.',
+        'Admin y regular pueden administrar todos los clientes. Los clientes argentinos requieren condición fiscal.',
       security,
       parameters: paginationParameters,
       responses: {
-        ...billingResponses(400, 401, 403, 500),
+        ...billingResponses(400, 401, 500),
         200: jsonResponse('ClientListResponse', 'Listado paginado.'),
       },
     },
@@ -48,11 +48,11 @@ export const clientPaths = {
       tags: ['Clients'],
       summary: 'Crear cliente',
       description:
-        'Solo admin puede administrar clientes. Los clientes argentinos requieren condición fiscal.',
+        'Admin y regular pueden administrar todos los clientes. Los clientes argentinos requieren condición fiscal.',
       security,
       requestBody: requestBody('CreateClientRequest'),
       responses: {
-        ...billingResponses(400, 401, 403, 409, 500),
+        ...billingResponses(400, 401, 409, 500),
         201: jsonResponse('ClientResponse', 'Registro creado.'),
       },
     },
@@ -64,7 +64,7 @@ export const clientPaths = {
       security,
       parameters: [idParameter],
       responses: {
-        ...billingResponses(400, 401, 403, 404, 500),
+        ...billingResponses(400, 401, 404, 500),
         200: jsonResponse('ClientResponse', 'Registro encontrado.'),
       },
     },
@@ -72,12 +72,12 @@ export const clientPaths = {
       tags: ['Clients'],
       summary: 'Editar cliente',
       description:
-        'Solo admin puede administrar clientes. Los clientes argentinos requieren condición fiscal.',
+        'Admin y regular pueden administrar todos los clientes. Los clientes argentinos requieren condición fiscal.',
       security,
       parameters: [idParameter],
       requestBody: requestBody('UpdateClientRequest'),
       responses: {
-        ...billingResponses(400, 401, 403, 404, 409, 500),
+        ...billingResponses(400, 401, 404, 409, 500),
         200: jsonResponse('ClientResponse', 'Registro actualizado.'),
       },
     },
@@ -85,11 +85,11 @@ export const clientPaths = {
       tags: ['Clients'],
       summary: 'Eliminar cliente',
       description:
-        'Solo admin puede administrar clientes. Los clientes argentinos requieren condición fiscal.',
+        'Admin y regular pueden administrar todos los clientes. Los clientes argentinos requieren condición fiscal.',
       security,
       parameters: [idParameter],
       responses: {
-        ...billingResponses(400, 401, 403, 404, 409, 500),
+        ...billingResponses(400, 401, 404, 409, 500),
         204: { description: 'Registro eliminado, sin contenido.' },
       },
     },

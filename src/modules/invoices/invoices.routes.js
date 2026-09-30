@@ -4,8 +4,6 @@ import { listInvoicesValidation } from './validators/listInvoices.validator.js';
 import { createInvoiceValidation } from './validators/createInvoice.validator.js';
 import { updateInvoiceValidation } from './validators/updateInvoice.validator.js';
 import { handleValidation } from '../../middleweres/handle-validation.js';
-import { requireRoles } from '../../middleweres/requiere-roles.js';
-import { USER_ROLES } from '../../constants/constants.js';
 import {
   listInvoices,
   getInvoice,
@@ -20,14 +18,12 @@ router.get('/:id', invoiceIdValidation, handleValidation, getInvoice);
 router.post('/', createInvoiceValidation, handleValidation, createInvoice);
 router.patch(
   '/:id',
-  requireRoles(USER_ROLES.ADMIN),
   updateInvoiceValidation,
   handleValidation,
   updateInvoice,
 );
 router.delete(
   '/:id',
-  requireRoles(USER_ROLES.ADMIN),
   invoiceIdValidation,
   handleValidation,
   deleteInvoice,

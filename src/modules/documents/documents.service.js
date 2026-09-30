@@ -10,15 +10,12 @@ import {
   inDocumentTransaction,
 } from './documents.repository.js';
 import {
-  documentVisibility,
-  assertCanReadDocument,
-  assertCanAssignOwner,
+  assertDocumentExists,
   assertPendingDocument,
 } from './support/documents.guards.js';
 
-export async function listDocuments({ page = 1, limit = 20 }, actor) {
+export async function listDocuments({ page = 1, limit = 20 }) {
   const { rows, count } = await findDocuments({
-    where: documentVisibility(actor),
     limit,
     offset: (page - 1) * limit,
   });
@@ -31,9 +28,9 @@ export async function listDocuments({ page = 1, limit = 20 }, actor) {
   };
 }
 
-export async function getDocument(id, actor) {
+export async function getDocument(id) {
   const document = await findDocumentById(id);
-  assertCanReadDocument(actor, document);
+  assertDocumentExists(document);
   return document;
 }
 
@@ -47,7 +44,6 @@ async function assertReferences(data) {
 }
 
 export async function addDocument(data, actor) {
-  assertCanAssignOwner(actor, data);
   const documentData = {
     ...data,
     userId: data.userId ?? Number(actor.sub),
@@ -57,21 +53,20 @@ export async function addDocument(data, actor) {
   return createDocument(documentData);
 }
 
-export async function editDocument(id, data, actor) {
-  assertCanAssignOwner(actor, data);
+export async function editDocument(id, data) {
   await assertReferences(data);
   return inDocumentTransaction(async (transaction) => {
     const document = await findDocumentById(id, transaction);
-    assertCanReadDocument(actor, document);
+    assertDocumentExists(document);
     assertPendingDocument(document);
     return updateDocument(document, data, transaction);
   });
 }
 
-export async function removeDocument(id, actor) {
+export async function removeDocument(id) {
   return inDocumentTransaction(async (transaction) => {
     const document = await findDocumentById(id, transaction);
-    assertCanReadDocument(actor, document);
+    assertDocumentExists(document);
     assertPendingDocument(document);
     await deleteDocument(document, transaction);
   });

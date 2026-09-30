@@ -27,7 +27,7 @@ export const documentPaths = {
       tags: ['Documents'],
       summary: 'Listar documentos',
       description:
-        'Admin accede a todas las órdenes; regular solo a las propias. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
+        'Admin y regular acceden y operan sobre todas las órdenes. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
       security,
       parameters: paginationParameters,
       responses: {
@@ -39,11 +39,11 @@ export const documentPaths = {
       tags: ['Documents'],
       summary: 'Crear documento',
       description:
-        'Admin accede a todas las órdenes; regular solo a las propias. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
+        'Admin y regular acceden y operan sobre todas las órdenes. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
       security,
       requestBody: requestBody('CreateDocumentRequest'),
       responses: {
-        ...billingResponses(400, 401, 403, 404, 409, 500),
+        ...billingResponses(400, 401, 404, 409, 500),
         201: jsonResponse('DocumentResponse', 'Registro creado.'),
       },
     },
@@ -63,12 +63,12 @@ export const documentPaths = {
       tags: ['Documents'],
       summary: 'Editar documento',
       description:
-        'Admin accede a todas las órdenes; regular solo a las propias. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
+        'Admin y regular acceden y operan sobre todas las órdenes. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
       security,
       parameters: [idParameter],
       requestBody: requestBody('UpdateDocumentRequest'),
       responses: {
-        ...billingResponses(400, 401, 403, 404, 409, 500),
+        ...billingResponses(400, 401, 404, 409, 500),
         200: jsonResponse('DocumentResponse', 'Registro actualizado.'),
       },
     },
@@ -76,7 +76,7 @@ export const documentPaths = {
       tags: ['Documents'],
       summary: 'Eliminar documento',
       description:
-        'Admin accede a todas las órdenes; regular solo a las propias. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
+        'Admin y regular acceden y operan sobre todas las órdenes. Solo se modifican o eliminan órdenes pendientes. El estado invoiced se asigna al emitir una factura.',
       security,
       parameters: [idParameter],
       responses: {
