@@ -55,6 +55,13 @@ Para los demás valores podés conservar los de `.env.example`. Dentro de Docker
 
 ### 2. Levantar la demo completa
 
+Antes de ejecutar los comandos, asegurate de que el motor de Docker esté iniciado:
+
+- **Windows o macOS:** abrí Docker Desktop y esperá a que indique que Docker está en ejecución. Mantenelo abierto mientras uses la demo.
+- **Linux con Docker Engine:** iniciá el servicio Docker (en distribuciones con systemd, `sudo systemctl start docker`) y asegurate de tener Docker Compose instalado. Si usás Docker Desktop en Linux, abrilo y esperá a que termine de iniciar.
+
+Podés comprobar que el motor está disponible con `docker info`. Si el comando informa que no puede conectarse al daemon de Docker, primero iniciá Docker antes de crear la red o levantar los contenedores.
+
 La API comparte la red externa `erp-agent-network` con el agente. Creala una sola vez antes de levantar los servicios; si ya existe, continuá:
 
 ```powershell
