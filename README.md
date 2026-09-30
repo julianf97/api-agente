@@ -131,26 +131,6 @@ La carga puede repetirse: no duplica registros, no elimina datos ni restablece
 los documentos de demo que se hayan eliminado. No se ejecuta en el schema de tests.
 En una base existente, la cantidad total puede ser mayor si ya tenía otros datos.
 
-## Conectar el agente
-
-Con la API levantada, configurá en el `.env` de `agent-ts-langchain`:
-
-```env
-API_BASE_URL=http://localhost:3000
-API_EMAIL=regular@example.com
-API_PASSWORD=RegularDemo123!
-BILLING_BATCH_SIZE=5
-```
-
-Esta URL corresponde al agente ejecutándose en tu computadora con el puerto
-predeterminado. Si cambiás `HOST_PORT`, ajustá la URL. Configurá también las
-variables de OpenAI indicadas en el repositorio del agente.
-
-El agente inicia sesión, consulta los documentos paginados y selecciona OV con
-estado `pending`. Para cada factura envía a `POST /invoices` solamente `number`
-y `documentId`. La API calcula los datos fiscales y el importe, crea la factura
-y marca la orden como `invoiced`. Una orden admite una única factura.
-
 ## API local con PostgreSQL en Docker
 
 Como alternativa para desarrollar, podés ejecutar solamente PostgreSQL en Docker
