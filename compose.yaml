@@ -12,7 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init/01-seed.sql:/docker-entrypoint-initdb.d/01-seed.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: [ "CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\"" ]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -37,7 +37,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: ["sh", "-c", "node scripts/migrate-db.js up && node scripts/seed-demo.js && node src/server.js"]
+    command: [ "sh", "-c", "node scripts/migrate-db.js up && node scripts/seed-demo.js && node src/server.js" ]
+    networks:
+      - erp
 
 volumes:
   postgres_data:
+
+networks:
+  erp:
+    external: true
+    name: erp-agent-network
