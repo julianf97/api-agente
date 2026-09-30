@@ -55,7 +55,10 @@ Para los demás valores podés conservar los de `.env.example`. Dentro de Docker
 
 ### 2. Levantar la demo completa
 
+La API comparte la red externa `erp-agent-network` con el agente. Creala una sola vez antes de levantar los servicios; si ya existe, continuá:
+
 ```powershell
+docker network create erp-agent-network
 docker compose up -d --build
 docker compose logs -f api
 ```
@@ -162,6 +165,10 @@ La carga puede repetirse: no duplica registros, no elimina datos ni restablece �
 En una base existente, la cantidad total puede ser mayor si ya tenía otros datos.
 
 ## Conectar el agente
+
+El servicio `api` se conecta a `erp-agent-network` con el alias `api-agente`, además de su red privada para PostgreSQL. El agente dockerizado usa `API_BASE_URL=http://api-agente:3000`; desde tu computadora, usá `http://localhost:3000` (o el `HOST_PORT` configurado). Ambos proyectos deben ejecutarse en el mismo Docker Engine. PostgreSQL conserva su volumen y no se conecta a la red compartida.
+
+Después de actualizar este repositorio, ejecutá `docker compose up -d --build` para conectar el contenedor API a la red.
 
 Con la API levantada, seguí las instrucciones del repositorio [agent-ts-langchain](https://github.com/julianf97/agent-ts-langchain) para configurar y ejecutar el agente.
 
