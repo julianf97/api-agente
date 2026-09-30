@@ -15,6 +15,9 @@ import { authenticate } from '../middleweres/authenticate.js';
 const router = Router();
 
 // Attach context before parsing so malformed JSON errors retain the module contract.
+router.get('/', (_req, res) => {
+  res.json({ message: 'API is running' });
+});
 router.use('/auth', responseContext(authContext), json(), authRouter);
 router.use('/users', json(), authenticate, requireAdmin, usersRouter);
 router.use('/clients', responseContext(clientContext), json(), authenticate, clientsRouter);
