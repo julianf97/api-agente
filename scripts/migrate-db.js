@@ -11,7 +11,10 @@ if (!schema || process.env.DB_USE_TEST_SCHEMA === 'true' || schema === process.e
 const queryInterface = sequelize.getQueryInterface();
 const quotedSchema = queryInterface.queryGenerator.quoteIdentifier(schema);
 const migrator = new Umzug({
-  migrations: { glob: fileURLToPath(new URL('../migrations/*.js', import.meta.url)) },
+  // Keep glob syntax separate from the native directory path (Windows uses backslashes).
+  migrations: {
+    glob: ['*.js', { cwd: fileURLToPath(new URL('../migrations/', import.meta.url)) }],
+  },
   context: queryInterface,
   storage: new SequelizeStorage({ sequelize, tableName: 'SequelizeMeta', schema }),
   logger: console,
