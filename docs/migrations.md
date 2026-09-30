@@ -73,3 +73,16 @@ npm run db:migrate:undo
 ```
 
 Restaura el nombre invoices, los estados históricos y los roles originales. Se bloquea si existen nuevas facturas o documentos sin datos históricos, para impedir perderlos. Los clientes agregados después de la migración también deben reconciliarse antes de revertir.
+
+## Schema de tests
+
+`npm run db:migrate:test:reset` elimina y recrea únicamente DB_TEST_SCHEMA (por defecto api-agente-test), crea la estructura original vacía y aplica las mismas migraciones de facturación. Descarta todos los datos del schema de tests. DB_TEST_SCHEMA debe terminar en -test y ser distinto de DB_SCHEMA. No altera el schema principal.
+
+Usá DB_HOST=127.0.0.1 y DB_PORT=5433 para Docker, o DB_PORT=5432 para PostgreSQL local, con las credenciales correspondientes:
+
+```powershell
+npm run db:migrate:test:reset
+npm run db:migrate:test:status
+```
+
+El estado debe mostrar la migración en executed y pending vacío. Para aplicar futuras migraciones sin reiniciar tests usá `npm run db:migrate:test`. La preparación del schema no adapta automáticamente los fixtures, endpoints ni los tests existentes.
