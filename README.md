@@ -1,6 +1,6 @@
 # API Agent — Demo Sicorp
 
-API REST con Express, PostgreSQL y Sequelize para demostrar automatización de un ERP. Gestiona usuarios, clientes, órdenes de venta y facturas. El agente del repositorio [agent-ts-langchain](https://github.com/julianf97/agent-ts-langchain) consume esta API para generar facturas desde órdenes de venta pendientes.
+API REST con Express, PostgreSQL y Sequelize para demostrar automatización de un agente sobre una API. Gestiona usuarios, clientes, órdenes de venta y facturas. El agente del repositorio [agent-ts-langchain](https://github.com/julianf97/agent-ts-langchain) consume esta API para generar facturas desde órdenes de venta pendientes.
 
 ## Badges
 
@@ -49,9 +49,7 @@ Cada programador configura su propia contraseña de PostgreSQL y su propio `JWT_
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Pegá el resultado como `JWT_SECRET` en `.env`. El agente no necesita este secreto:
-
-obtiene un token iniciando sesión. No subas `.env` al repositorio.
+Pegá el resultado como `JWT_SECRET` en `.env`. El agente no necesita este secreto: obtiene un token iniciando sesión. No subas `.env` al repositorio.
 
 Para los demás valores podés conservar los de `.env.example`. Dentro de Docker, Compose configura automáticamente `DB_HOST=db`, `DB_PORT=5432` y `DB_SCHEMA=api-agente`. `DB_HOST_PORT=5433` es el puerto de PostgreSQL accesible desde tu computadora; `HOST_PORT=3000` es el puerto público de la API.
 
@@ -150,9 +148,7 @@ Las tablas quedan preparadas mediante las migraciones. `SequelizeMeta` registra 
 
 Los documentos se crean con estado `pending` y números como `DEMO-OV-0001`.
 
-Los clientes incluyen casos argentinos y de exportación. Los IDs pueden variar:
-
-el agente debe consultar la API para obtenerlos.
+Los clientes incluyen casos argentinos y de exportación. Los IDs pueden variar: el agente debe consultar la API para obtenerlos.
 
 | Usuario | Email | Contraseña inicial |
 | --- | --- | --- |
@@ -167,44 +163,19 @@ En una base existente, la cantidad total puede ser mayor si ya tenía otros dato
 
 ## Conectar el agente
 
-Con la API levantada, configurá en el `.env` de `agent-ts-langchain`:
+Con la API levantada, seguí las instrucciones del repositorio [agent-ts-langchain](https://github.com/julianf97/agent-ts-langchain) para configurar y ejecutar el agente.
 
-```env
-API_BASE_URL=http://localhost:3000
-API_EMAIL=regular@example.com
-API_PASSWORD=RegularDemo123!
-BILLING_BATCH_SIZE=5
-```
+## Documentación y referencia
 
-Esta URL corresponde al agente ejecutándose en tu computadora con el puerto predeterminado. Si cambiás `HOST_PORT`, ajustá la URL. Configurá también las variables de OpenAI indicadas en el repositorio del agente.
+Las siguientes secciones describen el uso de la API, los endpoints, los tests y los comandos de mantenimiento.
 
-El agente inicia sesión, consulta los documentos paginados y selecciona OV con estado `pending`. Para cada factura envía a `POST /invoices` solamente `number` y `documentId`. La API calcula los datos fiscales y el importe, crea la factura y marca la orden como `invoiced`. Una orden admite una única factura.
-
-## API local con PostgreSQL en Docker
-
-Como alternativa para desarrollar, podés ejecutar solamente PostgreSQL en Docker y la API con Node.js 22 en tu computadora. Después de copiar y configurar `.env`:
-
-```powershell
-npm ci
-docker compose up -d --wait db
-$env:DB_HOST = '127.0.0.1'
-$env:DB_PORT = '5433'
-$env:DB_SCHEMA = 'api-agente'
-$env:DB_USE_TEST_SCHEMA = 'false'
-npm run db:migrate
-npm run db:seed:demo
-npm run dev
-```
-
-El puerto debe coincidir con `DB_HOST_PORT`. Estas variables de PowerShell se aplican a la terminal actual. En esta modalidad las migraciones y el seed son manuales: `npm run dev` solo inicia la API. No ejecutes simultáneamente otra API en el mismo puerto. Consultá [las migraciones](docs/migrations.md) para más detalles.
-
-## Swagger
+### Swagger
 
 La documentación interactiva está disponible en [http://localhost:3000/api-docs](http://localhost:3000/api-docs) después de levantar la API. Si cambiás `HOST_PORT`, usá ese puerto en la URL.
 
 Swagger muestra los endpoints, cuerpos de entrada, respuestas y requisitos de autenticación de Auth, Users, Clients, Documents e Invoices.
 
-### Probar los endpoints
+#### Probar los endpoints
 
 1. Abrí `POST /auth/login`, seleccioná **Try it out** y enviá las credenciales de demo:
 
@@ -223,7 +194,7 @@ Para probar la facturación, consultá `GET /documents` y elegí una OV con `sta
 
 Las solicitudes ejecutadas desde Swagger modifican la misma base de la demo que consume el agente.
 
-## Endpoints
+### Endpoints
 
 Todas las rutas salvo login requieren `Authorization: Bearer <token>`.
 
@@ -237,7 +208,7 @@ Todas las rutas salvo login requieren `Authorization: Bearer <token>`.
 
 Los listados usan `page` y `limit`: valores por defecto 1 y 20, máximo 100 por página. Los importes se envían como texto decimal positivo, por ejemplo `"125.00"`. Swagger documenta los cuerpos y respuestas.
 
-## Tests
+### Tests
 
 Prepará el esquema aislado de tests en la conexión elegida:
 
@@ -256,7 +227,7 @@ npm run test:unit
 
 Los unitarios no requieren PostgreSQL. La integración valida respuestas HTTP contra OpenAPI, permisos, referencias, selección A/B/E, snapshots y concurrencia/rollback al facturar. CircleCI y GitHub Actions preparan la base de tests con las mismas migraciones antes de ejecutar la suite.
 
-## Comandos Docker
+### Comandos Docker
 
 ```powershell
 docker compose ps
