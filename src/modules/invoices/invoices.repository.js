@@ -37,8 +37,8 @@ export function updateInvoice(invoice, data, transaction) {
   return invoice.update(data, { transaction });
 }
 
-export function markDocumentInvoiced(document, transaction) {
-  return document.update({ status: 'invoiced' }, { transaction });
+export function updateInvoiceDocument(document, data, transaction) {
+  return document.update(data, { transaction });
 }
 
 export function deleteInvoice(invoice, transaction) {

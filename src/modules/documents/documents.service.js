@@ -1,18 +1,14 @@
-import { BillingError } from '../../errors/billing-error.js';
-import { getClient } from '../clients/clients.service.js';
-import { findExistingUserById } from '../users/support/find-existing-user.js';
+import { findExistingDocumentById } from './support/find-existing-document.js';
+import { assertDocumentReferences } from './support/assert-document-references.js';
+import { toDocumentCreationData } from './support/documents.mapper.js';
 import {
   findDocuments,
-  findDocumentById,
   createDocument,
   updateDocument,
   deleteDocument,
   inDocumentTransaction,
 } from './documents.repository.js';
-import {
-  assertDocumentExists,
-  assertPendingDocument,
-} from './support/documents.guards.js';
+import { assertPendingDocument } from './support/documents.guards.js';
 
 export async function listDocuments({ page = 1, limit = 20 }) {
   const { rows, count } = await findDocuments({
@@ -29,35 +25,19 @@ export async function listDocuments({ page = 1, limit = 20 }) {
 }
 
 export async function getDocument(id) {
-  const document = await findDocumentById(id);
-  assertDocumentExists(document);
-  return document;
-}
-
-async function assertReferences(data) {
-  if (data.clientId !== undefined) await getClient(data.clientId);
-  if (data.userId !== undefined) {
-    const user = await findExistingUserById(data.userId);
-    if (!user.enabled)
-      throw new BillingError('El dueño del documento debe estar habilitado.');
-  }
+  return findExistingDocumentById(id);
 }
 
 export async function addDocument(data, actor) {
-  const documentData = {
-    ...data,
-    userId: data.userId ?? Number(actor.sub),
-    status: 'pending',
-  };
-  await assertReferences(documentData);
+  const documentData = toDocumentCreationData(data, actor);
+  await assertDocumentReferences(documentData);
   return createDocument(documentData);
 }
 
 export async function editDocument(id, data) {
-  await assertReferences(data);
+  await assertDocumentReferences(data);
   return inDocumentTransaction(async (transaction) => {
-    const document = await findDocumentById(id, transaction);
-    assertDocumentExists(document);
+    const document = await findExistingDocumentById(id, transaction);
     assertPendingDocument(document);
     return updateDocument(document, data, transaction);
   });
@@ -65,8 +45,7 @@ export async function editDocument(id, data) {
 
 export async function removeDocument(id) {
   return inDocumentTransaction(async (transaction) => {
-    const document = await findDocumentById(id, transaction);
-    assertDocumentExists(document);
+    const document = await findExistingDocumentById(id, transaction);
     assertPendingDocument(document);
     await deleteDocument(document, transaction);
   });

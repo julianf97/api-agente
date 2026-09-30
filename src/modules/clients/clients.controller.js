@@ -12,7 +12,6 @@ export async function listClients(req, res, next) {
   try {
     const result = await listService(
       matchedData(req, { locations: ['query'] }),
-      req.auth,
     );
     return res.json({
       clients: result.clients.map(toClientResponse),
@@ -31,7 +30,7 @@ export async function listClients(req, res, next) {
 export async function getClient(req, res, next) {
   try {
     return res.json(
-      toClientResponse(await getService(req.params.id, req.auth)),
+      toClientResponse(await getService(req.params.id)),
     );
   } catch (error) {
     return next(error);
@@ -42,7 +41,7 @@ export async function createClient(req, res, next) {
   try {
     return res
       .status(201)
-      .json(toClientResponse(await addService(req.validatedBody, req.auth)));
+      .json(toClientResponse(await addService(req.validatedBody)));
   } catch (error) {
     return next(error);
   }
@@ -52,7 +51,7 @@ export async function updateClient(req, res, next) {
   try {
     return res.json(
       toClientResponse(
-        await editService(req.params.id, req.validatedBody, req.auth),
+        await editService(req.params.id, req.validatedBody),
       ),
     );
   } catch (error) {
@@ -62,7 +61,7 @@ export async function updateClient(req, res, next) {
 
 export async function deleteClient(req, res, next) {
   try {
-    await removeService(req.params.id, req.auth);
+    await removeService(req.params.id);
     return res.status(200).json({ message: 'Registro eliminado.' });
   } catch (error) {
     return next(error);

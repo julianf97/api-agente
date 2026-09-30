@@ -1,5 +1,6 @@
 import {
   CLIENT_TAX_CONDITIONS as TAX,
+  DOCUMENT_STATUSES,
   INVOICE_TYPES,
   INVOICE_STATUSES,
 } from '../../../constants/constants.js';
@@ -35,4 +36,8 @@ export function toInvoiceCreationData(data, document, client) {
     status: INVOICE_STATUSES.ISSUED,
     issuedAt: new Date(),
   };
+}
+
+export function toInvoicedDocumentData() {
+  return { status: DOCUMENT_STATUSES.INVOICED };
 }

@@ -1,8 +1,8 @@
-import { BillingError } from '../../errors/billing-error.js';
+import { findExistingClientById } from './support/find-existing-client.js';
+import { toClientCreationData, toClientTaxValidationData } from './support/clients.mapper.js';
 import { assertClientTaxData } from './support/clients.guards.js';
 import {
   findClients,
-  findClientById,
   createClient,
   updateClient,
   deleteClient,
@@ -23,20 +23,18 @@ export async function listClients({ page = 1, limit = 20 }) {
 }
 
 export async function getClient(id) {
-  const client = await findClientById(id);
-  if (!client) throw new BillingError('Cliente no encontrado.', 404);
-  return client;
+  return findExistingClientById(id);
 }
 
 export async function addClient(data) {
-  const clientData = { country: 'AR', taxCondition: null, ...data };
+  const clientData = toClientCreationData(data);
   assertClientTaxData(clientData);
   return createClient(clientData);
 }
 
 export async function editClient(id, data) {
   const client = await getClient(id);
-  assertClientTaxData({ ...client.get({ plain: true }), ...data });
+  assertClientTaxData(toClientTaxValidationData(client, data));
   return updateClient(client, data);
 }
 

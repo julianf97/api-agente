@@ -3,7 +3,7 @@ import { beforeEach, expect, jest, test } from '@jest/globals';
 const findDocumentForInvoice = jest.fn();
 const findInvoiceClient = jest.fn();
 const createInvoice = jest.fn();
-const markDocumentInvoiced = jest.fn();
+const updateInvoiceDocument = jest.fn();
 const transaction = {};
 jest.unstable_mockModule('../../src/modules/invoices/invoices.repository.js', () => ({
   findInvoices: jest.fn(),
@@ -11,7 +11,7 @@ jest.unstable_mockModule('../../src/modules/invoices/invoices.repository.js', ()
   findDocumentForInvoice,
   findInvoiceClient,
   createInvoice,
-  markDocumentInvoiced,
+  updateInvoiceDocument,
   updateInvoice: jest.fn(),
 }));
 jest.unstable_mockModule('../../src/modules/invoices/support/find-existing-invoice.js', () => ({
@@ -28,7 +28,7 @@ test.each(['OC', 'PR', 'RE', 'NC'])('%s pending cannot create an invoice or chan
   });
   expect(findInvoiceClient).not.toHaveBeenCalled();
   expect(createInvoice).not.toHaveBeenCalled();
-  expect(markDocumentInvoiced).not.toHaveBeenCalled();
+  expect(updateInvoiceDocument).not.toHaveBeenCalled();
 });
 
 test('OV pending keeps the existing invoicing flow', async () => {
@@ -38,5 +38,5 @@ test('OV pending keeps the existing invoicing flow', async () => {
   createInvoice.mockResolvedValue({ id: 4, documentId: 1, type: 'B' });
   await expect(addInvoice({ number: 'F-1', documentId: 1 })).resolves.toMatchObject({ type: 'B', documentId: 1 });
   expect(createInvoice).toHaveBeenCalledWith(expect.objectContaining({ number: 'F-1', documentId: 1, amount: '100.00', type: 'B' }), transaction);
-  expect(markDocumentInvoiced).toHaveBeenCalledWith(document, transaction);
+  expect(updateInvoiceDocument).toHaveBeenCalledWith(document, { status: 'invoiced' }, transaction);
 });
