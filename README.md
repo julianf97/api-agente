@@ -2,7 +2,7 @@
 
 API REST de demostración para gestionar usuarios y facturas, desarrollada con Express, PostgreSQL y Sequelize.
 
-Incluye autenticación con JWT, permisos según el rol, documentación interactiva con Swagger, tests automatizados y datos de ejemplo que se cargan al levantar el proyecto con Docker.
+Incluye autenticación con JWT, permisos según el rol, documentación interactiva con Swagger, tests automatizados y ejecución con Docker.
 
 El proyecto sirve como base para demostrar cómo un agente de IA podría consultar información y ejecutar acciones sobre una API de gestión. Actualmente implementa la API; la integración del agente corresponde a una siguiente etapa.
 
@@ -146,7 +146,7 @@ docker compose ps
 
 Los puertos indicados son los predeterminados. Podés cambiarlos mediante `HOST_PORT` y `DB_HOST_PORT` en `.env`.
 
-### Inicialización y datos de ejemplo
+### Inicialización sin datos de ejemplo
 
 En el primer arranque, con un volumen vacío, PostgreSQL ejecuta:
 
@@ -154,9 +154,9 @@ En el primer arranque, con un volumen vacío, PostgreSQL ejecuta:
 docker/init/01-seed.sql
 ```
 
-Este archivo crea las tablas del esquema de demostración y carga **8 usuarios y 100 facturas**.
+Este archivo crea la estructura original de `users` e `invoices` con tablas vacías. No carga usuarios ni facturas de ejemplo.
 
-Antes de iniciar el servidor, la API ejecuta `scripts/bootstrap-db.js` para crear los esquemas que falten y preparar las tablas de desarrollo.
+En esta rama, ejecutá las migraciones explícitas antes de iniciar la API. Consultá [docs/migrations.md](docs/migrations.md). No uses `scripts/bootstrap-db.js` para esta transición.
 
 El proyecto utiliza dos esquemas dentro de la misma base de datos:
 
@@ -195,26 +195,7 @@ Para probar otro rol, reemplazá el token por el obtenido al iniciar sesión con
 
 ## Cuentas de prueba
 
-Los datos iniciales incluyen estas cuentas para probar los tres roles:
-
-| Rol | Correo electrónico | Contraseña |
-| --- | --- | --- |
-| `superadmin` | `admin-user@gmail.com` | `sicorpPassword523` |
-| `admin` | `useradmin@example.com` | `useradmin123` |
-| `regular` | `postman.regular01@example.com` | `ClaveSegura123` |
-
-Estas credenciales corresponden exclusivamente al entorno de demostración.
-
-Ejemplo de petición para iniciar sesión como `superadmin`:
-
-```json
-{
-  "email": "admin-user@gmail.com",
-  "password": "sicorpPassword523"
-}
-```
-
-Al editar o eliminar registros, los cambios quedan guardados en el volumen de PostgreSQL.
+Docker no crea cuentas de prueba automáticamente. Las credenciales del seed anterior ya no corresponden a una base recién inicializada.
 
 ## Endpoints
 
@@ -349,16 +330,16 @@ Detener los servicios conservando los datos:
 docker compose down
 ```
 
-### Restablecer los datos de demostración
+### Reinicializar el volumen
 
-Para eliminar los datos actuales y volver a cargar el estado inicial:
+Solo para descartar deliberadamente toda la base y recrear la estructura original vacía:
 
 ```sh
 docker compose down -v
-docker compose up -d --build
+docker compose up -d db
 ```
 
-> `docker compose down -v` elimina el volumen y todos los registros guardados. El siguiente arranque vuelve a ejecutar el SQL de inicialización.
+> `docker compose down -v` elimina el volumen y todos los registros guardados. El siguiente arranque crea las tablas originales vacías; después hay que ejecutar las migraciones explícitas.
 
 ## Autor
 
