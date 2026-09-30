@@ -94,6 +94,7 @@ export async function up({ context: queryInterface }) {
     )`, transaction);
     await sql(`CREATE TABLE ${q}.billing_legacy_roles AS SELECT id, role FROM ${q}.users WHERE role = 'superadmin'`, transaction);
     await sql(`UPDATE ${q}.users SET role = 'admin' WHERE role = 'superadmin'`, transaction);
+    await sql(`ALTER TABLE ${q}.users DROP CONSTRAINT IF EXISTS users_role_check`, transaction);
     await sql(`ALTER TABLE ${q}.users ADD CONSTRAINT users_role_check CHECK(role IN ('regular','admin'))`, transaction);
   });
 }
@@ -113,6 +114,7 @@ export async function down({ context: queryInterface }) {
     }
     await sql(`ALTER TABLE ${q}.users DROP CONSTRAINT users_role_check`, transaction);
     await sql(`UPDATE ${q}.users u SET role = b.role FROM ${q}.billing_legacy_roles b WHERE u.id = b.id`, transaction);
+    await sql(`ALTER TABLE ${q}.users ADD CONSTRAINT users_role_check CHECK(role IN ('regular','admin','superadmin'))`, transaction);
     await sql(`DROP TABLE ${q}.billing_legacy_roles`, transaction);
     await sql(`DROP TABLE ${q}.invoices`, transaction);
     await sql(`DROP TYPE ${q}.enum_invoices_type, ${q}.enum_invoices_status`, transaction);
