@@ -39,12 +39,15 @@ services:
         condition: service_healthy
     command: [ "sh", "-c", "node scripts/migrate-db.js up && node scripts/seed-demo.js && node src/server.js" ]
     networks:
-      - erp
+      default: {}
+      erp:
+        aliases:
+          - api-agente
 
 volumes:
   postgres_data:
 
 networks:
+  default: {}
   erp:
-    external: true
     name: erp-agent-network
